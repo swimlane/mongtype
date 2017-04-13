@@ -1,0 +1,39 @@
+{
+  "name": "mongtype",
+  "version": "1.0.0",
+  "description": "Mongo Repository for Node written in TypeScript",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://amcdnl@github.com/swimlane/montype.git"
+  },
+  "keywords": [
+    "typescript",
+    "mongodb",
+    "repository"
+  ],
+  "author": "Swimlane",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/swimlane/montype/issues"
+  },
+  "homepage": "https://github.com/swimlane/montype#readme",
+  "devDependencies": {
+    "tslint": "^4.4.2",
+    "tslint-config-swimlane": "^2.0.1",
+    "reflect-metadata": "^0.1.10",
+    "typescript": "^2.2.2"
+  },
+  "peerDependencies": {
+    "reflect-metadata": "^0.1.10"
+  },
+  "dependencies": {
+    "injection-js": "^2.0.1",
+    "mongodb": "^2.2.25",
+    "reflect-metadata": "^0.1.10"
+  }
+}
