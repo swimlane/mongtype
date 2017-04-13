@@ -1,4 +1,4 @@
-# MonType
+# MongType
 MongoDB Repository pattern for NodeJS written in TypeScript.
 
 **NOTE: THIS PROJECT IS IN THE EARLY PHASES AND NOT READY FOR PROD USE YET.**.
