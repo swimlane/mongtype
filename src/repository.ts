@@ -107,16 +107,25 @@ export class MongoRepository<T> {
 
   async save(document: any): Promise<T> {
     const collection = await this.collection;
-    // model = this.toggleId(model, true);
+    
+    // flip/flop ids
     const id = new ObjectID(document.id);
     delete document.id;
-    const updates = this.invokeEvents(PRE_KEY, ['save'], document);
-    
-    const res = await collection
-      .findOneAndUpdate({ _id: id }, { $set: updates });
+    delete document._id;
 
-    let newDocument = res.value || document;
+    const updates = this.invokeEvents(PRE_KEY, ['save'], document);
+    const res = await collection.updateOne({ _id: id }, { $set: updates }, { upsert: true });
+    let newDocument = await collection.findOne({ _id: id });
+
+    // project new items
+    if(newDocument) {
+      Object.assign(document, newDocument);
+    }
+
+    // flip flop ids back
     newDocument.id = id.toString();
+    delete newDocument._id;
+
     newDocument = this.invokeEvents(POST_KEY, ['save'], newDocument);
     return newDocument;
   }
