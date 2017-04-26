@@ -4,7 +4,6 @@ import { UpdateRequest, UpdateByIdRequest, FindRequest } from './types';
 import { Database } from './db';
 export declare class MongoRepository<T> {
     private db;
-    logger: any;
     readonly name: string;
     readonly collection: Promise<Collection>;
     readonly connection: Promise<Db>;
