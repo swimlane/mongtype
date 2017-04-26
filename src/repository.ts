@@ -7,8 +7,6 @@ import { Injectable } from 'injection-js';
 @Injectable()
 export class MongoRepository<T> {
 
-  logger: any;
-
   get name(): string {
     return Reflect.getMetadata(NAME_KEY, this);
   }
