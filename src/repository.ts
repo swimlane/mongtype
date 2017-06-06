@@ -141,7 +141,7 @@ export class MongoRepository<T> {
     const updates = this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
     
     const res = await collection
-      .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert });
+      .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert, returnNewDocument: true });
 
     let document = res.value;
     document = this.toggleId(document, false);
