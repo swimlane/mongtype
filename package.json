@@ -1,6 +1,6 @@
 {
   "name": "mongtype",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Mongo Repository for Node written in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
