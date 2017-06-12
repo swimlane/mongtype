@@ -12,8 +12,8 @@ export class Database {
     if (!this.db) {
       const operation = retry.operation();
 
-      operation.attempt((attempt) => {
-        this.db = new Promise(async (resolve, reject) => {
+      this.db = new Promise((resolve, reject) => {
+        operation.attempt(async (attempt) => {
           try {
             const db = await MongoClient.connect(this.uri);
             console.log(`Mongo: Connection opened: ${this.uri}`);
