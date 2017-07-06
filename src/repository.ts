@@ -22,7 +22,7 @@ export class MongoRepository<T> {
 
   constructor(private db: Database) { }
   
-  toggleId(document, replace): any {
+  toggleId(document, replace): T {
     if(document.id || document._id) {
       if(replace) {
         document._id = new ObjectID(document.id);
@@ -35,11 +35,14 @@ export class MongoRepository<T> {
     return document;
   }
 
-  invokeEvents(type, fns, document): any {
+  async invokeEvents(type, fns, document): Promise<T> {
     for(const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
       for(const event of events) {
-        document = event(document);
+        document = event.bind(this)(document);
+        if (typeof document.then === 'function') {
+          document = await document;
+        }
       }
     }
     
@@ -58,7 +61,7 @@ export class MongoRepository<T> {
     if(res && res.length) {
       let document = res[0];
       document = this.toggleId(document, false);
-      document = this.invokeEvents(POST_KEY, ['find', 'findOne'], document);
+      document = await this.invokeEvents(POST_KEY, ['find', 'findOne'], document);
       return document;
     }
   }
@@ -86,7 +89,8 @@ export class MongoRepository<T> {
 
     for(let document of newDocuments) {
       document = this.toggleId(document, false);
-      results.push(this.invokeEvents(POST_KEY, ['find', 'findMany'], document));
+      document = await this.invokeEvents(POST_KEY, ['find', 'findMany'], document);
+      results.push(document);
     }
 
     return results;
@@ -94,12 +98,12 @@ export class MongoRepository<T> {
 
   async create(document: T): Promise<T> {
     const collection = await this.collection;
-    document = this.invokeEvents(PRE_KEY, ['save', 'create'], document);
+    document = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
     const res = await collection.insertOne(document);
 
     let newDocument = res.ops[0];
     newDocument = this.toggleId(newDocument, false);
-    newDocument = this.invokeEvents(POST_KEY, ['save', 'create'], newDocument);
+    newDocument = await this.invokeEvents(POST_KEY, ['save', 'create'], newDocument);
     return newDocument;
   }
 
@@ -111,7 +115,7 @@ export class MongoRepository<T> {
     delete document.id;
     delete document._id;
 
-    const updates = this.invokeEvents(PRE_KEY, ['save'], document);
+    const updates = await this.invokeEvents(PRE_KEY, ['save'], document);
     const res = await collection.updateOne({ _id: id }, { $set: updates }, { upsert: true });
     let newDocument = await collection.findOne({ _id: id });
 
@@ -124,7 +128,7 @@ export class MongoRepository<T> {
     newDocument.id = id.toString();
     delete newDocument._id;
 
-    newDocument = this.invokeEvents(POST_KEY, ['save'], newDocument);
+    newDocument = await this.invokeEvents(POST_KEY, ['save'], newDocument);
     return newDocument;
   }
 
@@ -138,14 +142,14 @@ export class MongoRepository<T> {
 
   async findOneAndUpdate(req: UpdateRequest): Promise<T> {
     const collection = await this.collection;
-    const updates = this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
+    const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
     
     const res = await collection
       .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert, returnNewDocument: true });
 
     let document = res.value;
     document = this.toggleId(document, false);
-    document = this.invokeEvents(POST_KEY, ['update', 'updateOne'], document);
+    document = await this.invokeEvents(POST_KEY, ['update', 'updateOne'], document);
     return document;
   }
 
@@ -166,4 +170,3 @@ export class MongoRepository<T> {
   }
 
 }
-
