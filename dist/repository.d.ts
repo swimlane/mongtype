@@ -8,8 +8,8 @@ export declare class MongoRepository<T> {
     readonly collection: Promise<Collection>;
     readonly connection: Promise<Db>;
     constructor(db: Database);
-    toggleId(document: any, replace: any): any;
-    invokeEvents(type: any, fns: any, document: any): any;
+    toggleId(document: any, replace: any): T;
+    invokeEvents(type: any, fns: any, document: any): Promise<T>;
     findById(id: string): Promise<T>;
     findOne(conditions: any): Promise<T>;
     find(req?: FindRequest): Promise<any[T]>;
