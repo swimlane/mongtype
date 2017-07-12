@@ -1,4 +1,4 @@
-export declare const NAME_KEY = "name";
+export declare const COLLECTION_KEY = "collection";
 export declare const PRE_KEY = "pre";
 export declare const POST_KEY = "post";
 export interface UpdateByIdRequest {
@@ -16,5 +16,7 @@ export interface FindRequest {
 }
 export interface CollectionProps {
     name: string;
-    middleware?: any[];
+    capped?: boolean;
+    size?: number;
+    max?: number;
 }

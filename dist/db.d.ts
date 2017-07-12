@@ -1,7 +1,9 @@
+/// <reference types="node" />
 import { Db } from 'mongodb';
-export declare class Database {
-    private db;
+import { EventEmitter } from 'events';
+export declare class Database extends EventEmitter {
+    connection: Promise<Db>;
     private uri;
-    readonly connection: Promise<Db>;
     connect(uri: any): Promise<Db>;
+    private createConnection();
 }

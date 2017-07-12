@@ -1,8 +1,8 @@
-import { NAME_KEY, PRE_KEY, POST_KEY, CollectionProps } from './types';
+import { COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps } from './types';
 
 export function Collection(props: CollectionProps) {
   return function(target: any) {
-    Reflect.defineMetadata(NAME_KEY, props.name, target.prototype);
+    Reflect.defineMetadata(COLLECTION_KEY, props, target.prototype);
   };
 }
 

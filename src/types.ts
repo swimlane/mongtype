@@ -1,4 +1,4 @@
-export const NAME_KEY = 'name';
+export const COLLECTION_KEY = 'collection';
 export const PRE_KEY = 'pre';
 export const POST_KEY = 'post';
 
@@ -20,5 +20,7 @@ export interface FindRequest {
 
 export interface CollectionProps {
   name: string;
-  middleware?: any[];
+  capped?: boolean;
+  size?: number;
+  max?: number;
 }

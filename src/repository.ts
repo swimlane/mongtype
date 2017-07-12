@@ -1,52 +1,26 @@
 import 'reflect-metadata';
 import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mongodb';
-import { NAME_KEY, PRE_KEY, POST_KEY, UpdateRequest, UpdateByIdRequest, FindRequest } from './types';
+import { 
+  COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest 
+} from './types';
 import { Database } from './db';
 import { Injectable } from 'injection-js';
 
 @Injectable()
 export class MongoRepository<T> {
 
-  get name(): string {
-    return Reflect.getMetadata(NAME_KEY, this);
-  }
-
-  get collection(): Promise<Collection> {
-    return this.db.connection
-      .then(db => db.collection(this.name));
-  }
-
+  collection: Promise<Collection>;
+  
   get connection(): Promise<Db> {
     return this.db.connection;
   }
 
-  constructor(private db: Database) { }
-  
-  toggleId(document, replace): T {
-    if(document.id || document._id) {
-      if(replace) {
-        document._id = new ObjectID(document.id);
-        delete document.id;
-      } else {
-        document.id = document._id.toString();
-        delete document._id;
-      }
-    }
-    return document;
+  get options(): CollectionProps {
+    return Reflect.getMetadata(COLLECTION_KEY, this);
   }
 
-  async invokeEvents(type, fns, document): Promise<T> {
-    for(const fn of fns) {
-      const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
-      for(const event of events) {
-        document = event.bind(this)(document);
-        if (typeof document.then === 'function') {
-          document = await document;
-        }
-      }
-    }
-    
-    return document;
+  constructor(public db: Database) {
+    this.createCollection();
   }
 
   findById(id: string): Promise<T> {
@@ -167,6 +141,46 @@ export class MongoRepository<T> {
   async deleteMany(conditions: any): Promise<any> {
     const collection = await this.collection;
     return collection.deleteMany(conditions);
+  }
+
+  private createCollection(): void {
+    this.collection = new Promise((resolve, reject) => {
+      this.db.once('connected', async (db) => {
+        const collection = db.collection(this.options.name, {
+          size: this.options.size,
+          capped: this.options.capped,
+          max: this.options.max
+        });
+        resolve(collection);
+      });
+    });
+  }
+
+  private toggleId(document: any, replace: boolean): T {
+    if(document && (document.id || document._id)) {
+      if(replace) {
+        document._id = new ObjectID(document.id);
+        delete document.id;
+      } else {
+        document.id = document._id.toString();
+        delete document._id;
+      }
+    }
+    return document;
+  }
+
+  private async invokeEvents(type: string, fns: string[], document: any): Promise<T> {
+    for(const fn of fns) {
+      const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
+      for(const event of events) {
+        document = event.bind(this)(document);
+        if (typeof document.then === 'function') {
+          document = await document;
+        }
+      }
+    }
+    
+    return document;
   }
 
 }

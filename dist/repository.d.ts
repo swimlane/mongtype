@@ -1,15 +1,13 @@
 import 'reflect-metadata';
 import { Db, Collection } from 'mongodb';
-import { UpdateRequest, UpdateByIdRequest, FindRequest } from './types';
+import { CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest } from './types';
 import { Database } from './db';
 export declare class MongoRepository<T> {
-    private db;
-    readonly name: string;
-    readonly collection: Promise<Collection>;
+    db: Database;
+    collection: Promise<Collection>;
     readonly connection: Promise<Db>;
+    readonly options: CollectionProps;
     constructor(db: Database);
-    toggleId(document: any, replace: any): T;
-    invokeEvents(type: any, fns: any, document: any): Promise<T>;
     findById(id: string): Promise<T>;
     findOne(conditions: any): Promise<T>;
     find(req?: FindRequest): Promise<any[T]>;
@@ -20,4 +18,7 @@ export declare class MongoRepository<T> {
     deleteOneById(id: string): Promise<any>;
     deleteOne(conditions: any): Promise<any>;
     deleteMany(conditions: any): Promise<any>;
+    private createCollection();
+    private toggleId(document, replace);
+    private invokeEvents(type, fns, document);
 }
