@@ -9,16 +9,20 @@ MongoDB Repository pattern for NodeJS written in TypeScript.
 
 ## Usage
 
-#### Simple
+#### Using DI
 ```javascript
 import { MongoRepository, Collection, Pre, Post, Database } from 'mongtype';
+import { Injectable } from 'injection-js';
 
 interface User {
   name: string;
 }
 
+@Injectable()
 @Collection({
-  name: 'user'
+  name: 'user',
+  capped: true,
+  size: 10000
 })
 export class UserRepository extends MongoRepository<User> {
   @Before('save')
@@ -28,34 +32,31 @@ export class UserRepository extends MongoRepository<User> {
   doSomethingAfterSave() { }
 }
 
-// Usage
+@Injectable()
+export class App {
+  constructor(private db: Database, private userRepo: UserRepository) {
+    db.connect('yourconnectionstring');
+  }
+  
+  async findUsers() {
+    const one = await this.userRepo.findById('3434-34-34343-3434');
+    const many = await this.userRepo.find({ conditions: { name: 'foo' } });
+    const newOne = await this.userRepo.create({ foo: true });
+    const updated = await this.userRepo.save(newOne);
+  }
+}
+```
+
+#### Without DI
+```javascript
 const db = new Database();
-db.connect('uri');
+db.connect('yourconnectionstring');
 const svc = new UserRepository(db);
 
-// CRUD Examples
 const one = await svc.findById('3434-34-34343-3434');
 const many = await svc.find({ conditions: { name: 'foo' } });
 const newOne = await svc.create({ foo: true });
 const updated = await svc.save(newOne);
-```
-
-#### Example with [injection-js](https://github.com/mgechev/injection-js)
-```javascript
-import { ReflectiveInjector, Injectable, Injector } from 'injection-js';
-
-const injector = ReflectiveInjector.resolveAndCreate([
-  UserRepository, 
-  Database,
-  MyClass
-]);
-
-@Injectable()
-export class MyClass {
-  constructor(private svc: UserRepository) { }
-}
-
-console.log(injector.get(MyClass) instanceof MyClass);
 ```
 
 ## Similar
