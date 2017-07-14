@@ -1,8 +1,6 @@
 # MongType
 MongoDB Repository pattern for NodeJS written in TypeScript.
 
-**NOTE: THIS PROJECT IS IN THE EARLY PHASES AND NOT READY FOR PROD USE YET.**.
-
 ## Install
 `npm i mongtype --S`
 
@@ -13,7 +11,7 @@ MongoDB Repository pattern for NodeJS written in TypeScript.
 
 #### Simple
 ```javascript
-import { MongoRepository, Collection, Pre, Post, Database } from 'mongood';
+import { MongoRepository, Collection, Pre, Post, Database } from 'mongtype';
 
 interface User {
   name: string;
