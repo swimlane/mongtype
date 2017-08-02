@@ -145,7 +145,7 @@ export class MongoRepository<T> {
 
   private createCollection(): void {
     this.collection = new Promise((resolve, reject) => {
-      this.db.once('connected', async (db) => {
+      this.connection.then(async (db) => {
         const collection = db.collection(this.options.name, {
           size: this.options.size,
           capped: this.options.capped,
