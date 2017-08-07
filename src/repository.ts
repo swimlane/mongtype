@@ -4,9 +4,7 @@ import {
   COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest 
 } from './types';
 import { Database } from './db';
-import { Injectable } from 'injection-js';
 
-@Injectable()
 export class MongoRepository<T> {
 
   collection: Promise<Collection>;

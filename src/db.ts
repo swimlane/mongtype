@@ -1,10 +1,8 @@
 import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mongodb';
-import { Injectable } from 'injection-js';
 import * as retry from 'retry';
 import { EventEmitter } from 'events';
 import { defer } from './util';
 
-@Injectable()
 export class Database extends EventEmitter {
 
   connection: any;

@@ -1,6 +1,6 @@
 {
   "name": "mongtype",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Mongo Repository for Node written in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "injection-js": "^2.0.1",
+    "inversify": "^4.3.0",
     "mongodb": "^2.2.25",
     "reflect-metadata": "^0.1.10",
     "retry": "^0.10.1"
