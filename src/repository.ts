@@ -1,14 +1,13 @@
-import 'reflect-metadata';
 import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mongodb';
-import { 
-  COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest 
+import {
+  COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest
 } from './types';
 import { Database } from './db';
 
 export class MongoRepository<T> {
 
   collection: Promise<Collection>;
-  
+
   get connection(): Promise<Db> {
     return this.db.connection;
   }
@@ -40,7 +39,7 @@ export class MongoRepository<T> {
 
   async find(req: FindRequest = { conditions: {} }): Promise<any[T]> {
     const collection = await this.collection;
-    
+
     const conditions  = this.toggleId(req.conditions, true);
     let cursor = collection.find(conditions);
 
@@ -81,7 +80,7 @@ export class MongoRepository<T> {
 
   async save(document: any): Promise<T> {
     const collection = await this.collection;
-    
+
     // flip/flop ids
     const id = new ObjectID(document.id);
     delete document.id;
@@ -115,7 +114,7 @@ export class MongoRepository<T> {
   async findOneAndUpdate(req: UpdateRequest): Promise<T> {
     const collection = await this.collection;
     const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
-    
+
     const res = await collection
       .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert, returnNewDocument: true });
 
@@ -177,7 +176,7 @@ export class MongoRepository<T> {
         }
       }
     }
-    
+
     return document;
   }
 

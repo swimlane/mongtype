@@ -9,7 +9,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run lint && npm run test:unit",
+    "test:unit": "mocha --compilers ts:ts-node/register ./tests/**/*.spec.ts -R spec --bail",
+    "test:cov": "nyc npm run test:unit",
+    "test:report": "cat ./coverage/lcov.info | codacy-coverage --language typescript",
+    "lint": "tslint ./{src,tests}/{,**/}*.ts"
   },
   "repository": {
     "type": "git",
@@ -27,7 +31,16 @@
   },
   "homepage": "https://github.com/swimlane/montype#readme",
   "devDependencies": {
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^2.2.43",
     "@types/node": "^6.0.81",
+    "@types/reflect-metadata": "0.0.5",
+    "chai": "^4.1.2",
+    "codacy-coverage": "^2.0.3",
+    "mocha": "^3.5.3",
+    "nyc": "^11.2.1",
+    "reflect-metadata": "^0.1.10",
+    "ts-node": "^3.3.0",
     "tslint": "^4.4.2",
     "tslint-config-swimlane": "^2.0.1",
     "typescript": "^2.2.2"
@@ -36,7 +49,28 @@
     "injection-js": "^2.0.1",
     "inversify": "^4.3.0",
     "mongodb": "^2.2.25",
-    "reflect-metadata": "^0.1.10",
     "retry": "^0.10.1"
+  },
+  "peerDependencies": {
+    "reflect-metadata": "^0.1.10"
+  },
+  "nyc": {
+    "include": [
+      "src/*.ts",
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "src/*.d.ts",
+      "src/**/*.d.ts"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "reporter": [
+      "lcov",
+      "html",
+      "text"
+    ],
+    "all": true
   }
 }
