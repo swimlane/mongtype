@@ -46,8 +46,6 @@
     "typescript": "^2.2.2"
   },
   "dependencies": {
-    "injection-js": "^2.0.1",
-    "inversify": "^4.3.0",
     "mongodb": "^2.2.25",
     "retry": "^0.10.1"
   },
