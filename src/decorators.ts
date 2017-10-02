@@ -1,11 +1,25 @@
 import { COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps } from './types';
 
+/**
+ * Indicate the class represents a collection
+ *
+ * @export
+ * @param {CollectionProps} props
+ * @returns
+ */
 export function Collection(props: CollectionProps) {
   return function(target: any) {
     Reflect.defineMetadata(COLLECTION_KEY, props, target.prototype);
   };
 }
 
+/**
+ * Run this function before an event occurs
+ *
+ * @export
+ * @param {...string[]} events a list of events
+ * @returns
+ */
 export function Before(...events: string[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
     for(const event of events) {
@@ -16,6 +30,13 @@ export function Before(...events: string[]) {
   };
 }
 
+/**
+ * Run this function after an event occurs
+ *
+ * @export
+ * @param {...string[]} events a list of events
+ * @returns
+ */
 export function After(...events: string[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
     for(const event of events) {
