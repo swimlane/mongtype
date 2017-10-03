@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { MongoRepository } from '../src/Repository';
-import { Collection } from '../src/Decorators';
+import { Collection, Before, After } from '../src/Decorators';
 import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
@@ -208,5 +208,63 @@ describe('MongoRepository', () => {
       expect(foundPeople.length).to.equal(people.length);
       mockDb.close();
     });
+  });
+
+  describe('Before/After', () => {
+    const COLLECTION_NAME = 'Dogs';
+
+    interface Dog {
+      firstName: string;
+      type: string;
+      good?: boolean;
+    }
+
+    @Collection({
+      name: COLLECTION_NAME
+    })
+    class DogRepository extends MongoRepository<Dog> {
+      @Before('create')
+      async goodBoy(doc: Dog): Promise<Dog> {
+        doc.good = true;
+        return doc;
+      }
+
+      @After('find')
+      async shout(doc: Dog): Promise<Dog> {
+        doc.firstName = doc.firstName.toUpperCase();
+        return doc;
+      }
+    }
+
+    beforeEach((done) => {
+      getDb().then((mockDb) =>
+        mockDb.dropCollection(COLLECTION_NAME, () => {
+          mockDb.close();
+          done();
+        })
+      );
+    });
+
+    it('should set all new dogs to good', async () => {
+      const mockDb = await getDb();
+      const repo = new DogRepository(mockDb);
+
+      const puppers = await repo.create({ firstName: faker.name.firstName(), type: 'mutt' });
+      expect(puppers.good).to.equal(true);
+      mockDb.close();
+    });
+
+    it('should UC all dog names on search', async () => {
+      const mockDb = await getDb();
+      const repo = new DogRepository(mockDb);
+
+      const puppers = await repo.create({ firstName: faker.name.firstName(), type: 'mutt' });
+      const foundPup = await repo.findOne({ firstName: puppers.firstName });
+
+      expect(foundPup.firstName).to.equal(puppers.firstName.toUpperCase());
+
+      mockDb.close();
+    });
+
   });
 });
