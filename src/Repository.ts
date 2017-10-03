@@ -1,7 +1,7 @@
 import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mongodb';
 import {
   COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest
-} from './types';
+} from './Types';
 
 export class MongoRepository<T> {
 
