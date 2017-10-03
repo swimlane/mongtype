@@ -17,7 +17,7 @@ MongoDB Repository pattern for NodeJS written in TypeScript.
 ### Using DI
 
 ```javascript
-import { MongoRepository, Collection, Pre, Post, Database } from 'mongtype';
+import { MongoRepository, Collection, Pre, Post } from 'mongtype';
 import { Injectable } from 'injection-js';
 
 interface User {
@@ -40,9 +40,7 @@ export class UserRepository extends MongoRepository<User> {
 
 @Injectable()
 export class App {
-  constructor(private db: Database, private userRepo: UserRepository) {
-    db.connect('yourconnectionstring');
-  }
+  constructor(private userRepo: UserRepository) { }
 
   async findUsers() {
     const one = await this.userRepo.findById('3434-34-34343-3434');
@@ -56,8 +54,6 @@ export class App {
 ### Without DI
 
 ```javascript
-const db = new Database();
-db.connect('yourconnectionstring');
 const svc = new UserRepository(db);
 
 const one = await svc.findById('3434-34-34343-3434');
