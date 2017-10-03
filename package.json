@@ -1,6 +1,6 @@
 {
   "name": "mongtype",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Mongo Repository for Node written in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -32,17 +32,22 @@
   "homepage": "https://github.com/swimlane/montype#readme",
   "devDependencies": {
     "@types/chai": "^4.0.4",
+    "@types/faker": "^4.1.1",
     "@types/mocha": "^2.2.43",
+    "@types/mongodb": "^2.2.11",
     "@types/node": "^6.0.81",
     "@types/reflect-metadata": "0.0.5",
+    "@types/retry": "^0.10.1",
     "chai": "^4.1.2",
     "codacy-coverage": "^2.0.3",
+    "faker": "^4.1.0",
     "mocha": "^3.5.3",
+    "mongo-mock": "^2.5.0",
     "nyc": "^11.2.1",
     "reflect-metadata": "^0.1.10",
     "ts-node": "^3.3.0",
     "tslint": "^4.4.2",
-    "tslint-config-swimlane": "^2.0.1",
+    "tslint-config-swimlane": "^3.0.0",
     "typescript": "^2.2.2"
   },
   "dependencies": {
