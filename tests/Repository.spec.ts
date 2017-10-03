@@ -23,6 +23,7 @@ describe('MongoRepository', () => {
 
     interface User {
       name: string;
+      title?: string;
     }
 
     @Collection({
@@ -49,16 +50,92 @@ describe('MongoRepository', () => {
       expect(collection.collectionName).to.equal(COLLECTION_NAME);
     });
 
-    it('should create a record', async () => {
+    it('should reuse an existing collection', async () => {
+      const mockDb = await getDb();
+      const collection = mockDb.collection(COLLECTION_NAME);
+      const user = { name: faker.name.firstName() };
+      const record = await collection.insertOne(user);
+
+      const repo = new UserRepository(mockDb);
+      const foundRecord = await repo.findOne({ name: user.name });
+      expect(foundRecord.name).to.deep.equal(record.ops[0].name);
+    });
+
+    it('should create/save/delete a record', async () => {
       const mockDb = await getDb();
       const repo = new UserRepository(mockDb);
 
-      const user = await repo.create({ name: 'Foo' });
+      const userObj = {
+        name: faker.name.firstName(),
+        title: faker.name.jobTitle()
+      };
 
+      // Create
+      const user = await repo.create(userObj);
       const collection = mockDb.collection(COLLECTION_NAME);
-      const foundUser = await collection.findOne({ name: 'Foo' });
-      expect(foundUser.name).to.equal('Foo');
+      const foundUser = await collection.findOne({ name: userObj.name });
+      expect(foundUser.name).to.equal(userObj.name);
       expect(foundUser).to.haveOwnProperty('_id');
+
+      /* Not implemented in mongo-mock
+      // Save
+      userObj.title = faker.name.jobTitle();
+      const newUser = await repo.save(userObj);
+      expect(newUser.title).to.deep.equal(userObj.title);
+      */
+
+      /* Not implemented in mongo-mock
+      // Find one by id and update
+      // reuse foundUser from above
+      userObj.name = faker.name.firstName();
+      const updatedUser = await repo.findOneByIdAndUpdate(foundUser._id, {
+        updates: {
+          $set: {
+            name: userObj.name
+          }
+         }
+      });
+      expect(updatedUser.name).to.equal(userObj.name);
+      */
+
+      /* Not implemented in mongo-mock
+      // Find one and update
+      userObj.title = faker.name.jobTitle();
+      const updatedUser = await repo.findOneAndUpdate({
+        conditions: {
+          name: userObj.name
+        },
+        updates: {
+          $set: {
+            title: userObj.title
+          }
+         }
+      });
+      expect(updatedUser.title).to.equal(userObj.title);
+      */
+
+      // Delete One by Id
+      const deleteOneById = await repo.deleteOneById(foundUser._id);
+      expect(deleteOneById.result.n).to.equal(1);
+
+      // Delete One
+      await repo.create(userObj); // put user back in
+      const deleteOne = await repo.deleteOne({ name: userObj.name });
+      expect(deleteOne.result.n).to.equal(1);
+    });
+
+    it('should delete many records', async () => {
+      const mockDb = await getDb();
+      const repo = new UserRepository(mockDb);
+      const title = faker.name.jobTitle();
+
+      // insert a bunch of documents
+      for (let x = 0; x < 10; x++) {
+        await repo.create({ name: faker.name.firstName(), title });
+      }
+
+      const delRes = await repo.deleteMany({ title });
+      expect(delRes.result.n).to.equal(10);
     });
   });
 
