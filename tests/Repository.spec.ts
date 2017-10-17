@@ -8,6 +8,13 @@ import { expect } from 'chai';
 import * as faker from 'faker';
 
 describe('MongoRepository', () => {
+  const dbs = [];
+
+  // Make sure you close all DBs
+  // Added this in case of error, CI tests are not hung open
+  after(async () => {
+    await Promise.all(dbs.map((db) => db.close()));
+  });
 
   function getDb(): Promise<DatabaseClient> {
     return new Promise((resolve, reject) => {
@@ -19,6 +26,7 @@ describe('MongoRepository', () => {
         if (err) reject(err);
         else {
           dbc.connect(uri, db);
+          dbs.push(db);
           resolve(dbc);
         }
       });
