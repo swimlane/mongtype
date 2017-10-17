@@ -2,6 +2,7 @@ import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mong
 import {
   COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest
 } from './Types';
+import { DatabaseClient } from './DatabaseClient';
 
 export class MongoRepository<T> {
 
@@ -13,11 +14,11 @@ export class MongoRepository<T> {
 
   /**
    * Creates an instance of MongoRepository.
-   * @param {Db} db Your MongoDB connection
+   * @param {DatabaseClient} db Your MongoDB connection
    * @memberof MongoRepository
    */
-  constructor(public db: Db) {
-    this.createCollection();
+  constructor(public db: DatabaseClient) {
+    this.collection = this.createCollection();
   }
 
   /**
@@ -211,8 +212,16 @@ export class MongoRepository<T> {
     return collection.deleteMany(conditions);
   }
 
-  private createCollection(): void {
-    this.collection = this.db.createCollection(this.options.name, {
+  /**
+   * Create a collection object using provided options
+   *
+   * @private
+   * @returns {Promise<Collection>}
+   * @memberof MongoRepository
+   */
+  private async createCollection(): Promise<Collection> {
+    const connection = await this.db.connection;
+    return connection.createCollection(this.options.name, {
       size: this.options.size,
       capped: this.options.capped,
       max: this.options.max
