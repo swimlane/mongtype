@@ -7,6 +7,10 @@ export class DatabaseClient extends EventEmitter {
   connection: Promise<Db>;
   private uri: string;
 
+  /**
+   * Creates an instance of DatabaseClient.
+   * @memberof DatabaseClient
+   */
   constructor() {
     super();
     this.connection = Promise.reject(new Error('Connect has not been established'));
@@ -14,6 +18,14 @@ export class DatabaseClient extends EventEmitter {
     this.connection.catch((err) => true);
   }
 
+  /**
+   * Connect to the mongodb
+   *
+   * @param {any} uri The uri of the MongoDB instance
+   * @param {(Db|Promise<Db>)} [conn] Optional instantiated MongoDB connection
+   * @returns {Promise<Db>}
+   * @memberof DatabaseClient
+   */
   async connect(uri, conn?: Db|Promise<Db>): Promise<Db> {
     this.uri = uri;
 
@@ -26,6 +38,15 @@ export class DatabaseClient extends EventEmitter {
     return this.connection;
   }
 
+  /**
+   * Create a connection to the MongoDB instance
+   * Will retry if connection fails initially
+   *
+   * @private
+   * @param {string} uri
+   * @returns {Promise<Db>}
+   * @memberof DatabaseClient
+   */
   private createConnection(uri: string): Promise<Db> {
     return new Promise<Db>((resolve, reject) => {
       const operation = retry.operation();
