@@ -81,9 +81,9 @@ describe('MongoRepository', () => {
       expect(foundUser).to.haveOwnProperty('_id');
 
       // Save
-      // userObj.title = faker.name.jobTitle();
-      // const newUser = await repo.save(userObj);
-      // expect(newUser.title).to.deep.equal(userObj.title);
+      userObj.title = user.title = faker.name.jobTitle();
+      const newUser = await repo.save(user);
+      expect(newUser.title).to.equal(userObj.title);
 
       /* Not implemented in mongo-mock
       // Find one by id and update
