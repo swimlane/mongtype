@@ -10,7 +10,7 @@
   "scripts": {
     "build": "tsc",
     "test": "npm run lint && npm run test:unit",
-    "test:unit": "mocha --compilers ts:ts-node/register ./tests/**/*.spec.ts -R spec --bail",
+    "test:unit": "mocha --require ts-node/register ./tests/**/*.spec.ts -R spec --bail",
     "test:cov": "nyc npm run test:unit",
     "test:report": "cat ./coverage/lcov.info | codacy-coverage --language typescript",
     "lint": "tslint ./{src,tests}/{,**/}*.ts"
@@ -34,24 +34,24 @@
     "@types/chai": "^4.0.4",
     "@types/faker": "^4.1.1",
     "@types/mocha": "^2.2.43",
-    "@types/mongodb": "^2.2.11",
-    "@types/node": "^6.0.81",
+    "@types/mongodb": "^2.2.13",
+    "@types/node": "^8.0.41",
     "@types/reflect-metadata": "0.0.5",
     "@types/retry": "^0.10.1",
     "chai": "^4.1.2",
     "codacy-coverage": "^2.0.3",
     "faker": "^4.1.0",
-    "mocha": "^3.5.3",
-    "mongo-mock": "^2.5.0",
+    "mocha": "^4.0.1",
+    "mongo-mock": "^2.6.0",
     "nyc": "^11.2.1",
     "reflect-metadata": "^0.1.10",
     "ts-node": "^3.3.0",
-    "tslint": "^4.4.2",
+    "tslint": "^5.7.0",
     "tslint-config-swimlane": "^3.0.0",
     "typescript": "^2.2.2"
   },
   "dependencies": {
-    "mongodb": "^2.2.25",
+    "mongodb": "^2.2.33",
     "retry": "^0.10.1"
   },
   "peerDependencies": {
