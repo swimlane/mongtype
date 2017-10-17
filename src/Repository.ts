@@ -1,6 +1,6 @@
 import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mongodb';
 import {
-  COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest
+  COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest, Document
 } from './Types';
 import { DatabaseClient } from './DatabaseClient';
 
@@ -110,11 +110,11 @@ export class MongoRepository<T> {
   /**
    * Save any changes to your document
    *
-   * @param {*} document
+   * @param {Document} document
    * @returns {Promise<T>}
    * @memberof MongoRepository
    */
-  async save(document: any): Promise<T> {
+  async save(document: Document): Promise<T> {
     const collection = await this.collection;
 
     // flip/flop ids
