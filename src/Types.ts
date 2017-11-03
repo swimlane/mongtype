@@ -1,3 +1,5 @@
+import { ObjectID } from 'mongodb';
+
 export const COLLECTION_KEY = 'collection';
 export const PRE_KEY = 'pre';
 export const POST_KEY = 'post';
@@ -23,4 +25,9 @@ export interface CollectionProps {
   capped?: boolean;
   size?: number;
   max?: number;
+}
+
+export interface Document {
+  id?: string|ObjectID;
+  [key: string]: any;
 }

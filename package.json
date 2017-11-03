@@ -1,12 +1,19 @@
 {
   "name": "mongtype",
-  "version": "1.4.0",
+  "version": "2.0.0",
   "description": "Mongo Repository for Node written in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run lint && npm run test:unit",
+    "test:unit": "mocha --require ts-node/register ./tests/**/*.spec.ts -R spec --bail",
+    "test:cov": "nyc npm run test:unit",
+    "test:report": "cat ./coverage/lcov.info | codacy-coverage --language typescript",
+    "lint": "tslint ./{src,tests}/{,**/}*.ts"
   },
   "repository": {
     "type": "git",
@@ -24,16 +31,49 @@
   },
   "homepage": "https://github.com/swimlane/montype#readme",
   "devDependencies": {
-    "@types/node": "^6.0.81",
-    "tslint": "^4.4.2",
-    "tslint-config-swimlane": "^2.0.1",
+    "@types/chai": "^4.0.4",
+    "@types/faker": "^4.1.1",
+    "@types/mocha": "^2.2.43",
+    "@types/mongodb": "^2.2.13",
+    "@types/node": "^8.0.41",
+    "@types/reflect-metadata": "0.0.5",
+    "@types/retry": "^0.10.1",
+    "chai": "^4.1.2",
+    "codacy-coverage": "^2.0.3",
+    "faker": "^4.1.0",
+    "mocha": "^4.0.1",
+    "mongo-mock": "^2.6.0",
+    "nyc": "^11.2.1",
+    "reflect-metadata": "^0.1.10",
+    "ts-node": "^3.3.0",
+    "tslint": "^5.7.0",
+    "tslint-config-swimlane": "^3.0.0",
     "typescript": "^2.2.2"
   },
   "dependencies": {
-    "injection-js": "^2.0.1",
-    "inversify": "^4.3.0",
-    "mongodb": "^2.2.25",
-    "reflect-metadata": "^0.1.10",
+    "mongodb": "^2.2.33",
     "retry": "^0.10.1"
+  },
+  "peerDependencies": {
+    "reflect-metadata": "^0.1.10"
+  },
+  "nyc": {
+    "include": [
+      "src/*.ts",
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "src/*.d.ts",
+      "src/**/*.d.ts"
+    ],
+    "extension": [
+      ".ts"
+    ],
+    "reporter": [
+      "lcov",
+      "html",
+      "text"
+    ],
+    "all": true
   }
 }
