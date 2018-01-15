@@ -8,50 +8,51 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist && tsc",
     "test": "npm run lint && npm run test:unit",
     "test:unit": "mocha --require ts-node/register ./tests/**/*.spec.ts -R spec --bail",
     "test:cov": "nyc npm run test:unit",
     "test:report": "cat ./coverage/lcov.info | codacy-coverage --language typescript",
-    "lint": "tslint ./{src,tests}/{,**/}*.ts"
+    "lint": "tslint ./{src,tests}/{,**/}*.ts",
+    "prepublishOnly": "npm run test && npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://amcdnl@github.com/swimlane/montype.git"
+    "url": "git+https://github.com/swimlane/montype.git"
   },
   "keywords": [
     "typescript",
     "mongodb",
     "repository"
   ],
-  "author": "Swimlane",
+  "author": "Swimlane <dev@swimlane.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/swimlane/montype/issues"
   },
   "homepage": "https://github.com/swimlane/montype#readme",
   "devDependencies": {
-    "@types/chai": "^4.0.4",
-    "@types/faker": "^4.1.1",
-    "@types/mocha": "^2.2.43",
-    "@types/mongodb": "^2.2.13",
-    "@types/node": "^8.0.41",
-    "@types/reflect-metadata": "0.0.5",
-    "@types/retry": "^0.10.1",
+    "@types/chai": "^4.1.0",
+    "@types/faker": "^4.1.2",
+    "@types/mocha": "^2.2.46",
+    "@types/mongodb": "^2.2.19",
+    "@types/node": "^8.5.8",
+    "@types/retry": "^0.10.2",
     "chai": "^4.1.2",
     "codacy-coverage": "^2.0.3",
     "faker": "^4.1.0",
-    "mocha": "^4.0.1",
-    "mongo-mock": "^2.6.0",
-    "nyc": "^11.2.1",
+    "mocha": "^4.1.0",
+    "mongo-mock": "^2.9.0",
+    "nyc": "^11.4.1",
     "reflect-metadata": "^0.1.10",
-    "ts-node": "^3.3.0",
-    "tslint": "^5.7.0",
-    "tslint-config-swimlane": "^3.0.0",
-    "typescript": "^2.2.2"
+    "rimraf": "^2.6.2",
+    "ts-node": "^4.1.0",
+    "tslint": "^5.9.1",
+    "tslint-config-swimlane": "^3.0.4",
+    "typescript": "^2.6.2"
   },
   "dependencies": {
-    "mongodb": "^2.2.33",
+    "mongodb": "^2.2.34",
     "retry": "^0.10.1"
   },
   "peerDependencies": {
