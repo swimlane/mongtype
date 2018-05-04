@@ -14,12 +14,13 @@ MongoDB Repository pattern for NodeJS written in TypeScript.
 
 ## Usage
 
+[Migrating from 2.X to 3.X](UPGRADE.md)
 [Migrating from 1.X to 2.X](UPGRADE.md)
 
 ### DatabaseClient
 
 The `DatabaseClient` class provides a wrapper around a mongodb connection
-It has a single method called `connect` that allows you to provide a uri to a MongoDB instance and optionally include an already established mongodb connection.
+It has a single method called `connect` that allows you to provide a uri to a MongoDB instance and optionally include an already established `MongoClient`.
 
 ```typescript
 import { DatabaseClient } from 'mongtype';
@@ -31,7 +32,7 @@ const dbc = new DatabaseClient();
 dbc.connect(uri);
 
 // DatabaseClient reuses an existing connection
-dbc.connect(uri, mongodbInstance);
+dbc.connect(uri, mongoClient);
 ```
 
 ### Using DI

@@ -1,8 +1,11 @@
-import { UpdateWriteOpResult, ObjectID, MongoClient, Db, Collection } from 'mongodb';
 import {
-  COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps, UpdateRequest, UpdateByIdRequest, FindRequest, Document
+    Collection, Db, DeleteWriteOpResultObject, MongoClient, ObjectID, UpdateWriteOpResult
+} from 'mongodb';
+
+import {
+    COLLECTION_KEY, CollectionProps, DBSource, Document, FindRequest, POST_KEY, PRE_KEY,
+    UpdateByIdRequest, UpdateRequest
 } from './Types';
-import { DatabaseClient } from './DatabaseClient';
 
 export class MongoRepository<T> {
 
@@ -14,11 +17,11 @@ export class MongoRepository<T> {
 
   /**
    * Creates an instance of MongoRepository.
-   * @param {DatabaseClient} db Your MongoDB connection
+   * @param {DBSource} dbSource Your MongoDB connection
    * @memberof MongoRepository
    */
-  constructor(public db: DatabaseClient) {
-    this.collection = this.createCollection();
+  constructor(public dbSource: DBSource) {
+    this.collection = this.getCollection();
   }
 
   /**
@@ -167,7 +170,7 @@ export class MongoRepository<T> {
     const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
 
     const res = await collection
-      .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert, returnNewDocument: true });
+      .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert, returnOriginal: false });
 
     let document = res.value;
     document = this.toggleId(document, false);
@@ -195,7 +198,7 @@ export class MongoRepository<T> {
    * @returns {Promise<any>}
    * @memberof MongoRepository
    */
-  async deleteOne(conditions: any): Promise<any> {
+  async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
     return collection.deleteOne(conditions);
   }
@@ -207,24 +210,39 @@ export class MongoRepository<T> {
    * @returns {Promise<any>}
    * @memberof MongoRepository
    */
-  async deleteMany(conditions: any): Promise<any> {
+  async deleteMany(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
     return collection.deleteMany(conditions);
   }
 
   /**
-   * Create a collection object using provided options
+   * Return a collection
+   * If the collection doesn't exist, it will create it with the given options
+   *
    *
    * @private
    * @returns {Promise<Collection>}
    * @memberof MongoRepository
    */
-  private async createCollection(): Promise<Collection> {
-    const connection = await this.db.connection;
-    return connection.createCollection(this.options.name, {
-      size: this.options.size,
-      capped: this.options.capped,
-      max: this.options.max
+  private async getCollection(): Promise<Collection> {
+    const db = await this.dbSource.db;
+    return new Promise<Collection>((resolve, reject) => {
+      db.collection(this.options.name, { strict: true }, async (err, collection) => {
+        if (err) {
+          try {
+            const createdCollection = await db.createCollection(this.options.name, {
+              size: this.options.size,
+              capped: this.options.capped,
+              max: this.options.max
+            });
+            resolve(createdCollection);
+          } catch (createErr) {
+            reject(createErr);
+          }
+        } else {
+          resolve(collection);
+        }
+      });
     });
   }
 
