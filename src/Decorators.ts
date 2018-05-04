@@ -1,4 +1,4 @@
-import { COLLECTION_KEY, PRE_KEY, POST_KEY, CollectionProps } from './Types';
+import { COLLECTION_KEY, CollectionProps, POST_KEY, PRE_KEY } from './Types';
 
 /**
  * Indicate the class represents a collection

@@ -1,4 +1,4 @@
-import { ObjectID } from 'mongodb';
+import { Db, ObjectID, MongoClient } from 'mongodb';
 
 export const COLLECTION_KEY = 'collection';
 export const PRE_KEY = 'pre';
@@ -30,4 +30,9 @@ export interface CollectionProps {
 export interface Document {
   id?: string|ObjectID;
   [key: string]: any;
+}
+
+export interface DBSource {
+  client: Promise<MongoClient>;
+  db: Promise<Db>;
 }

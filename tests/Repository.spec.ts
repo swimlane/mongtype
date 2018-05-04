@@ -25,7 +25,9 @@ describe('MongoRepository', () => {
       MongoClient.connect(uri, {}, (err, db) => {
         if (err) reject(err);
         else {
-          dbc.connect(uri, db);
+          // dbc.connect(uri, db);
+          // Hack until mongo-mock support 3.x driver
+          dbc.db = Promise.resolve(db);
           dbs.push(db);
           resolve(dbc);
         }
@@ -48,19 +50,19 @@ describe('MongoRepository', () => {
 
     it('should create a collection', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const repo = new UserRepository(dbc);
 
       await repo.collection; // wait for collection to be created
 
       const collection = mockDb.collection(COLLECTION_NAME);
       expect(collection.collectionName).to.equal(COLLECTION_NAME);
-      mockDb.close();
+      dbc.close();
     });
 
     it('should reuse an existing collection', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const collection = mockDb.collection(COLLECTION_NAME);
       const user = { name: faker.name.firstName() };
       const record = await collection.insertOne(user);
@@ -68,12 +70,12 @@ describe('MongoRepository', () => {
       const repo = new UserRepository(dbc);
       const foundRecord = await repo.findOne({ name: user.name });
       expect(foundRecord.name).to.deep.equal(record.ops[0].name);
-      mockDb.close();
+      dbc.close();
     });
 
     it('should create/save/delete a record', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const repo = new UserRepository(dbc);
 
       const userObj = {
@@ -131,12 +133,12 @@ describe('MongoRepository', () => {
       await repo.create(userObj); // put user back in
       const deleteOne = await repo.deleteOne({ name: userObj.name });
       expect(deleteOne.result.n).to.equal(1);
-      mockDb.close();
+      dbc.close();
     });
 
     it('should delete many records', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const repo = new UserRepository(dbc);
       const title = faker.name.jobTitle();
 
@@ -147,7 +149,7 @@ describe('MongoRepository', () => {
 
       const delRes = await repo.deleteMany({ title });
       expect(delRes.result.n).to.equal(10);
-      mockDb.close();
+      dbc.close();
     });
   });
 
@@ -183,35 +185,35 @@ describe('MongoRepository', () => {
 
     it('should find a record by id', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const people = await populateDb(mockDb);
       const repo = new PeopleRepository(dbc);
 
       const foundPerson = await repo.findById(people[0]._id);
       const collection = await repo.collection;
       expect(foundPerson.firstName).to.equal(people[0].firstName);
-      mockDb.close();
+      dbc.close();
     });
 
     it('should find a record by name', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const people = await populateDb(mockDb);
       const repo = new PeopleRepository(dbc);
 
       const foundPerson = await repo.findOne({ firstName: people[0].firstName });
       expect(foundPerson.firstName).to.equal(people[0].firstName);
-      mockDb.close();
+      dbc.close();
     });
 
     it('should find multiple records', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const people = await populateDb(mockDb);
       const repo = new PeopleRepository(dbc);
       const foundPeople = await repo.find({ conditions: { title: 'fake' } });
       expect(foundPeople.length).to.equal(people.length);
-      mockDb.close();
+      dbc.close();
     });
   });
 
@@ -243,7 +245,7 @@ describe('MongoRepository', () => {
 
     it('should set all new dogs to good', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.connection;
+      const mockDb = await dbc.db;
       const repo = new DogRepository(dbc);
 
       const puppers = await repo.create({ firstName: faker.name.firstName(), type: 'mutt' });
@@ -252,7 +254,7 @@ describe('MongoRepository', () => {
       expect(foundPup.firstName).to.equal(puppers.firstName.toUpperCase());
       expect(foundPup.good).to.equal(true);
 
-      mockDb.close();
+      dbc.close();
     });
 
   });

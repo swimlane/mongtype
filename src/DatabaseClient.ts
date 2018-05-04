@@ -1,11 +1,17 @@
-import { MongoClient, Db } from 'mongodb';
-import * as retry from 'retry';
 import { EventEmitter } from 'events';
+import { Db, MongoClient } from 'mongodb';
+import * as retry from 'retry';
+
+import { Deferred } from './Deferred';
 
 export class DatabaseClient extends EventEmitter {
 
-  connection: Promise<Db>;
+  client: Promise<MongoClient>;
+  db: Promise<Db>;
+
   private uri: string;
+  private deferredClient: Deferred<MongoClient>;
+  private deferredDb: Deferred<Db>;
 
   /**
    * Creates an instance of DatabaseClient.
@@ -13,29 +19,43 @@ export class DatabaseClient extends EventEmitter {
    */
   constructor() {
     super();
-    this.connection = Promise.reject(new Error('Connect has not been established'));
+    this.deferredClient = new Deferred<MongoClient>();
+    this.client = this.deferredClient.promise;
 
-    this.connection.catch((err) => true);
+    this.deferredDb = new Deferred<Db>();
+    this.db = this.deferredDb.promise;
   }
 
   /**
    * Connect to the mongodb
    *
-   * @param {any} uri The uri of the MongoDB instance
-   * @param {(Db|Promise<Db>)} [conn] Optional instantiated MongoDB connection
-   * @returns {Promise<Db>}
+   * @param {string} uri The uri of the MongoDB instance
+   * @param {(MongoClient|Promise<MongoClient>)} [client] Optional instantiated MongoDB connection
+   * @returns {Promise<MongoClient>}
    * @memberof DatabaseClient
    */
-  async connect(uri, conn?: Db|Promise<Db>): Promise<Db> {
+  async connect(uri: string, client?: MongoClient|Promise<MongoClient>): Promise<Db> {
     this.uri = uri;
 
-    if(conn !== undefined) {
-      this.connection = Promise.resolve(conn);
+    if(client !== undefined) {
+      this.deferredClient.resolve(client);
     } else {
-      this.connection = this.createConnection(this.uri);
+      this.deferredClient.resolve(this.createClient(this.uri));
     }
 
-    return this.connection;
+    this.db = this.deferredDb.resolve((await this.client).db());
+    return this.db;
+  }
+
+  /**
+   * Close the connection
+   *
+   * @returns {Promise<void>}
+   * @memberof DatabaseClient
+   */
+  async close(): Promise<void> {
+    const client = await this.client;
+    return client.close();
   }
 
   /**
@@ -44,17 +64,17 @@ export class DatabaseClient extends EventEmitter {
    *
    * @private
    * @param {string} uri
-   * @returns {Promise<Db>}
+   * @returns {Promise<MongoClient>}
    * @memberof DatabaseClient
    */
-  private createConnection(uri: string): Promise<Db> {
-    return new Promise<Db>((resolve, reject) => {
+  private createClient(uri: string): Promise<MongoClient> {
+    return new Promise<MongoClient>((resolve, reject) => {
       const operation = retry.operation();
       operation.attempt(async (attempt) => {
         try {
-          const db = await MongoClient.connect(uri);
-          this.emit('connected', db);
-          resolve(db);
+          const client = await MongoClient.connect(uri);
+          this.emit('connected', client);
+          resolve(client);
         } catch(e) {
           if (operation.retry(e)) return;
           this.emit('error', e);
