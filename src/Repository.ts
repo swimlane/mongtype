@@ -9,7 +9,7 @@ import {
 
 export class MongoRepository<T> {
 
-  collection: Promise<Collection>;
+  collection: Promise<Collection<T>>;
 
   get options(): CollectionProps {
     return Reflect.getMetadata(COLLECTION_KEY, this);
@@ -135,8 +135,8 @@ export class MongoRepository<T> {
     }
 
     // flip flop ids back
-    newDocument.id = id.toString();
-    delete newDocument._id;
+    newDocument['id'] = id.toString();
+    delete newDocument['_id'];
 
     newDocument = await this.invokeEvents(POST_KEY, ['save'], newDocument);
     return newDocument;
@@ -219,14 +219,13 @@ export class MongoRepository<T> {
    * Return a collection
    * If the collection doesn't exist, it will create it with the given options
    *
-   *
    * @private
-   * @returns {Promise<Collection>}
+   * @returns {Promise<Collection<T>>}
    * @memberof MongoRepository
    */
-  private async getCollection(): Promise<Collection> {
-    const db = await this.dbSource.db;
-    return new Promise<Collection>((resolve, reject) => {
+  private async getCollection(): Promise<Collection<T>> {
+    return new Promise<Collection<T>>(async (resolve, reject) => {
+      const db = await this.dbSource.db;
       db.collection(this.options.name, { strict: true }, async (err, collection) => {
         if (err) {
           try {
