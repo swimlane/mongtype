@@ -223,7 +223,7 @@ export class MongoRepository<T> {
    * @returns {Promise<Collection<T>>}
    * @memberof MongoRepository
    */
-  private async getCollection(): Promise<Collection<T>> {
+  private getCollection(): Promise<Collection<T>> {
     return new Promise<Collection<T>>(async (resolve, reject) => {
       const db = await this.dbSource.db;
       db.collection(this.options.name, { strict: true }, async (err, collection) => {

@@ -43,7 +43,7 @@ export class DatabaseClient extends EventEmitter {
       this.deferredClient.resolve(this.createClient(this.uri));
     }
 
-    this.db = this.deferredDb.resolve((await this.client).db());
+    this.deferredDb.resolve((await this.client).db());
     return this.db;
   }
 
