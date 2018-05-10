@@ -34,8 +34,10 @@ export function Before(...events: string[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
     for(const event of events) {
       const fns = Reflect.getMetadata(`${PRE_KEY}_${event}`, target) || [];
-      fns.push(target[name]);
-      Reflect.defineMetadata(`${PRE_KEY}_${event}`, fns, target);
+      // you must create new array so you don't push fn into siblings
+      // see https://github.com/rbuckton/reflect-metadata/issues/53#issuecomment-274906502
+      const result = fns ? fns.concat([target[name]]) : [target[name]];
+      Reflect.defineMetadata(`${PRE_KEY}_${event}`, result, target);
     }
   };
 }
@@ -61,8 +63,10 @@ export function After(...events: string[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
     for(const event of events) {
       const fns = Reflect.getMetadata(`${POST_KEY}_${event}`, target) || [];
-      fns.push(target[name]);
-      Reflect.defineMetadata(`${POST_KEY}_${event}`, fns, target);
+      // you must create new array so you don't push fn into siblings
+      // see https://github.com/rbuckton/reflect-metadata/issues/53#issuecomment-274906502
+      const result = fns ? fns.concat([target[name]]) : [target[name]];
+      Reflect.defineMetadata(`${POST_KEY}_${event}`, result, target);
     }
   };
 }
