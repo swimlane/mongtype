@@ -15,6 +15,16 @@ export function Collection(props: CollectionProps) {
 
 /**
  * Run this function before an event occurs
+ * - create
+ * - delete
+ * - deleteMany
+ * - deleteOne
+ * - find
+ * - findMany
+ * - findOne
+ * - save
+ * - update
+ * - updateOne
  *
  * @export
  * @param {...string[]} events a list of events
@@ -32,6 +42,16 @@ export function Before(...events: string[]) {
 
 /**
  * Run this function after an event occurs
+ * - create
+ * - delete
+ * - deleteMany
+ * - deleteOne
+ * - find
+ * - findMany
+ * - findOne
+ * - save
+ * - update
+ * - updateOne
  *
  * @export
  * @param {...string[]} events a list of events

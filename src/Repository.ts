@@ -182,10 +182,10 @@ export class MongoRepository<T> {
    * Delete a record by ID
    *
    * @param {string} id
-   * @returns {Promise<any>}
+   * @returns {Promise<DeleteWriteOpResultObject>}
    * @memberof MongoRepository
    */
-  async deleteOneById(id: string): Promise<any> {
+  async deleteOneById(id: string): Promise<DeleteWriteOpResultObject> {
     return this.deleteOne({
       _id: new ObjectID(id)
     });
@@ -195,12 +195,17 @@ export class MongoRepository<T> {
    * Delete a record
    *
    * @param {*} conditions
-   * @returns {Promise<any>}
+   * @returns {Promise<DeleteWriteOpResultObject>}
    * @memberof MongoRepository
    */
   async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
-    return collection.deleteOne(conditions);
+
+    await this.invokeEvents(PRE_KEY, ['delete', 'deleteOne'], conditions);
+    const deleteResult = collection.deleteOne(conditions);
+    await this.invokeEvents(POST_KEY, ['delete', 'deleteOne'], deleteResult);
+
+    return deleteResult;
   }
 
   /**
@@ -212,7 +217,12 @@ export class MongoRepository<T> {
    */
   async deleteMany(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
-    return collection.deleteMany(conditions);
+
+    await this.invokeEvents(PRE_KEY, ['delete', 'deleteMany'], conditions);
+    const deleteResult = collection.deleteMany(conditions);
+    await this.invokeEvents(POST_KEY, ['delete', 'deleteMany'], deleteResult);
+
+    return deleteResult;
   }
 
   /**
