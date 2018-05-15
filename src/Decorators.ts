@@ -32,7 +32,7 @@ export function Collection(props: CollectionProps) {
  */
 export function Before(...events: string[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
-    for(const event of events) {
+    for (const event of events) {
       const fns = Reflect.getMetadata(`${PRE_KEY}_${event}`, target) || [];
       // you must create new array so you don't push fn into siblings
       // see https://github.com/rbuckton/reflect-metadata/issues/53#issuecomment-274906502
@@ -61,7 +61,7 @@ export function Before(...events: string[]) {
  */
 export function After(...events: string[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
-    for(const event of events) {
+    for (const event of events) {
       const fns = Reflect.getMetadata(`${POST_KEY}_${event}`, target) || [];
       // you must create new array so you don't push fn into siblings
       // see https://github.com/rbuckton/reflect-metadata/issues/53#issuecomment-274906502

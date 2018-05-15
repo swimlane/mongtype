@@ -13,7 +13,7 @@ describe('MongoRepository', () => {
   // Make sure you close all DBs
   // Added this in case of error, CI tests are not hung open
   after(async () => {
-    await Promise.all(dbs.map((db) => db.close()));
+    await Promise.all(dbs.map(db => db.close()));
   });
 
   function getDb(): Promise<DatabaseClient> {
@@ -46,7 +46,7 @@ describe('MongoRepository', () => {
     @Collection({
       name: COLLECTION_NAME
     })
-    class UserRepository extends MongoRepository<User> { }
+    class UserRepository extends MongoRepository<User> {}
 
     it('should create a collection', async () => {
       const dbc = await getDb();
@@ -165,7 +165,7 @@ describe('MongoRepository', () => {
     @Collection({
       name: COLLECTION_NAME
     })
-    class PeopleRepository extends MongoRepository<Person> { }
+    class PeopleRepository extends MongoRepository<Person> {}
 
     async function populateDb(db: any): Promise<any[]> {
       const collection = db.collection(COLLECTION_NAME);
@@ -256,6 +256,5 @@ describe('MongoRepository', () => {
 
       dbc.close();
     });
-
   });
 });

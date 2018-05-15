@@ -1,14 +1,18 @@
-import {
-    Collection, Db, DeleteWriteOpResultObject, MongoClient, ObjectID, UpdateWriteOpResult
-} from 'mongodb';
+import { Collection, Db, DeleteWriteOpResultObject, MongoClient, ObjectID, UpdateWriteOpResult } from 'mongodb';
 
 import {
-    COLLECTION_KEY, CollectionProps, DBSource, Document, FindRequest, POST_KEY, PRE_KEY,
-    UpdateByIdRequest, UpdateRequest
+  COLLECTION_KEY,
+  CollectionProps,
+  DBSource,
+  Document,
+  FindRequest,
+  POST_KEY,
+  PRE_KEY,
+  UpdateByIdRequest,
+  UpdateRequest
 } from './Types';
 
 export class MongoRepository<T> {
-
   collection: Promise<Collection<T>>;
 
   get options(): CollectionProps {
@@ -47,7 +51,7 @@ export class MongoRepository<T> {
     const cursor = collection.find(conditions).limit(1);
 
     const res = await cursor.toArray();
-    if(res && res.length) {
+    if (res && res.length) {
       let document = res[0];
       document = this.toggleId(document, false);
       document = await this.invokeEvents(POST_KEY, ['find', 'findOne'], document);
@@ -65,7 +69,7 @@ export class MongoRepository<T> {
   async find(req: FindRequest = { conditions: {} }): Promise<T[]> {
     const collection = await this.collection;
 
-    const conditions  = this.toggleId(req.conditions, true);
+    const conditions = this.toggleId(req.conditions, true);
     let cursor = collection.find(conditions);
 
     if (req.projection) {
@@ -83,7 +87,7 @@ export class MongoRepository<T> {
     const newDocuments = await cursor.toArray();
     const results = [];
 
-    for(let document of newDocuments) {
+    for (let document of newDocuments) {
       document = this.toggleId(document, false);
       document = await this.invokeEvents(POST_KEY, ['find', 'findMany'], document);
       results.push(document);
@@ -130,7 +134,7 @@ export class MongoRepository<T> {
     let newDocument = await collection.findOne({ _id: id });
 
     // project new items
-    if(newDocument) {
+    if (newDocument) {
       Object.assign(document, newDocument);
     }
 
@@ -169,8 +173,10 @@ export class MongoRepository<T> {
     const collection = await this.collection;
     const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
 
-    const res = await collection
-      .findOneAndUpdate(req.conditions, updates, { upsert: req.upsert, returnOriginal: false });
+    const res = await collection.findOneAndUpdate(req.conditions, updates, {
+      upsert: req.upsert,
+      returnOriginal: false
+    });
 
     let document = res.value;
     document = this.toggleId(document, false);
@@ -265,8 +271,8 @@ export class MongoRepository<T> {
    * @memberof MongoRepository
    */
   private toggleId(document: any, replace: boolean): T {
-    if(document && (document.id || document._id)) {
-      if(replace) {
+    if (document && (document.id || document._id)) {
+      if (replace) {
         document._id = new ObjectID(document.id);
         delete document.id;
       } else {
@@ -288,9 +294,9 @@ export class MongoRepository<T> {
    * @memberof MongoRepository
    */
   private async invokeEvents(type: string, fns: string[], document: any): Promise<T> {
-    for(const fn of fns) {
+    for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
-      for(const event of events) {
+      for (const event of events) {
         document = event.bind(this)(document);
         if (typeof document.then === 'function') {
           document = await document;
@@ -300,5 +306,4 @@ export class MongoRepository<T> {
 
     return document;
   }
-
 }

@@ -5,7 +5,6 @@ import * as retry from 'retry';
 import { Deferred } from './Deferred';
 
 export class DatabaseClient extends EventEmitter {
-
   client: Promise<MongoClient>;
   db: Promise<Db>;
 
@@ -34,10 +33,10 @@ export class DatabaseClient extends EventEmitter {
    * @returns {Promise<MongoClient>}
    * @memberof DatabaseClient
    */
-  async connect(uri: string, client?: MongoClient|Promise<MongoClient>): Promise<Db> {
+  async connect(uri: string, client?: MongoClient | Promise<MongoClient>): Promise<Db> {
     this.uri = uri;
 
-    if(client !== undefined) {
+    if (client !== undefined) {
       this.deferredClient.resolve(client);
     } else {
       this.deferredClient.resolve(this.createClient(this.uri));
@@ -70,12 +69,12 @@ export class DatabaseClient extends EventEmitter {
   private createClient(uri: string): Promise<MongoClient> {
     return new Promise<MongoClient>((resolve, reject) => {
       const operation = retry.operation();
-      operation.attempt(async (attempt) => {
+      operation.attempt(async attempt => {
         try {
           const client = await MongoClient.connect(uri);
           this.emit('connected', client);
           resolve(client);
-        } catch(e) {
+        } catch (e) {
           if (operation.retry(e)) return;
           this.emit('error', e);
           reject(e);
@@ -83,5 +82,4 @@ export class DatabaseClient extends EventEmitter {
       });
     });
   }
-
 }

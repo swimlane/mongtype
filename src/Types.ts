@@ -28,7 +28,7 @@ export interface CollectionProps {
 }
 
 export interface Document {
-  id?: string|ObjectID;
+  id?: string | ObjectID;
   [key: string]: any;
 }
 
