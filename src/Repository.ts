@@ -126,10 +126,10 @@ export class MongoRepository<T> {
 
     // flip/flop ids
     const id = new ObjectID(document.id);
-    delete document.id;
-    delete document._id;
 
     const updates = await this.invokeEvents(PRE_KEY, ['save'], document);
+    delete updates['id'];
+    delete updates['_id'];
     const res = await collection.updateOne({ _id: id }, { $set: updates }, { upsert: true });
     let newDocument = await collection.findOne({ _id: id });
 

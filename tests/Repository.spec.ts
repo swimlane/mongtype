@@ -22,16 +22,20 @@ describe('MongoRepository', () => {
       const MongoClient = mongoMock.MongoClient;
       // unique db for each request
       const uri = `mongodb://${faker.internet.domainName()}:12345/Foo`;
-      MongoClient.connect(uri, {}, (err, db) => {
-        if (err) reject(err);
-        else {
-          // dbc.connect(uri, db);
-          // Hack until mongo-mock support 3.x driver
-          dbc.db = Promise.resolve(db);
-          dbs.push(db);
-          resolve(dbc);
+      MongoClient.connect(
+        uri,
+        {},
+        (err, db) => {
+          if (err) reject(err);
+          else {
+            // dbc.connect(uri, db);
+            // Hack until mongo-mock support 3.x driver
+            dbc.db = Promise.resolve(db);
+            dbs.push(db);
+            resolve(dbc);
+          }
         }
-      });
+      );
     });
   }
 
@@ -236,6 +240,14 @@ describe('MongoRepository', () => {
         return doc;
       }
 
+      @Before('save')
+      async onlyGoodBoys(doc: Dog): Promise<Dog> {
+        if ('good' in doc && !doc.good) {
+          throw new Error('All dogs are good!');
+        }
+        return doc;
+      }
+
       @After('find')
       async shout(doc: Dog): Promise<Dog> {
         doc.firstName = doc.firstName.toUpperCase();
@@ -253,6 +265,22 @@ describe('MongoRepository', () => {
 
       expect(foundPup.firstName).to.equal(puppers.firstName.toUpperCase());
       expect(foundPup.good).to.equal(true);
+
+      dbc.close();
+    });
+
+    it('should reject any bad dogs', async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: faker.name.firstName(), type: 'mutt' });
+      try {
+        const badDog = await repo.save({ ...puppers, good: false });
+        throw new Error('We allowed a bad dog!');
+      } catch (err) {
+        expect(err.message).to.equal('All dogs are good!');
+      }
 
       dbc.close();
     });
