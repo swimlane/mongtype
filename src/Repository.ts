@@ -266,7 +266,7 @@ export class MongoRepository<T> {
                 indexDefinition.overwrite &&
                 indexDefinition.options.name &&
                 indexErr.name === 'MongoError' &&
-                indexErr.codeName === 'IndexKeySpecsConflict'
+                (indexErr.codeName === 'IndexKeySpecsConflict' || indexErr.codeName === 'IndexOptionsConflict')
               ) {
                 // drop index and recreate
                 try {
