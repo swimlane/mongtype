@@ -243,20 +243,46 @@ export class MongoRepository<T> {
     return new Promise<Collection<T>>(async (resolve, reject) => {
       const db = await this.dbSource.db;
       db.collection(this.options.name, { strict: true }, async (err, collection) => {
+        let ourCollection = collection;
         if (err) {
           try {
-            const createdCollection = await db.createCollection(this.options.name, {
+            ourCollection = await db.createCollection(this.options.name, {
               size: this.options.size,
               capped: this.options.capped,
               max: this.options.max
             });
-            resolve(createdCollection);
           } catch (createErr) {
             reject(createErr);
           }
-        } else {
-          resolve(collection);
         }
+
+        // assert indexes
+        if (this.options.indexes) {
+          for (const indexDefinition of this.options.indexes) {
+            try {
+              await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
+            } catch (indexErr) {
+              if (
+                indexDefinition.overwrite &&
+                indexDefinition.options.name &&
+                indexErr.name === 'MongoError' &&
+                indexErr.codeName === 'IndexKeySpecsConflict'
+              ) {
+                // drop index and recreate
+                try {
+                  await ourCollection.dropIndex(indexDefinition.options.name);
+                  await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
+                } catch (recreateErr) {
+                  reject(recreateErr);
+                }
+              } else {
+                reject(indexErr);
+              }
+            }
+          }
+        }
+
+        resolve(ourCollection);
       });
     });
   }
