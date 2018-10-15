@@ -40,6 +40,25 @@ export class MongoRepository<T> {
   }
 
   /**
+   * Find multiple documents by a list of ids
+   *
+   * @param {string[]} ids
+   * @returns {Promise<T[]>}
+   * @memberof MongoRepository
+   */
+  async findManyById(ids: string[]): Promise<T[]> {
+    const collection = await this.collection;
+    const found = await collection.find({ _id: { $in: ids.map(id => new ObjectID(id)) } }).toArray();
+
+    const results: T[] = [];
+    for (const result of found) {
+      results.push(await this.invokeEvents(POST_KEY, ['find', 'findMany'], this.toggleId(result, false)));
+    }
+
+    return results;
+  }
+
+  /**
    * Finds a record by a list of conditions
    *
    * @param {object} conditions
