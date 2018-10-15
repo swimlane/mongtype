@@ -219,6 +219,16 @@ describe('MongoRepository', () => {
       expect(foundPeople.length).to.equal(people.length);
       dbc.close();
     });
+
+    it('should find multiple records by id', async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const people = await populateDb(mockDb);
+      const repo = new PeopleRepository(dbc);
+      const foundPeople = await repo.findManyById(people.map(p => p._id.toString()));
+      expect(foundPeople.length).to.equal(people.length);
+      dbc.close();
+    });
   });
 
   describe('Before/After', () => {
