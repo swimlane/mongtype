@@ -12,8 +12,8 @@ import {
   UpdateRequest
 } from './Types';
 
-export class MongoRepository<T> {
-  collection: Promise<Collection<T>>;
+export class MongoRepository<DOC, DTO = DOC> {
+  collection: Promise<Collection<DOC>>;
 
   get options(): CollectionProps {
     return Reflect.getMetadata(COLLECTION_KEY, this);
@@ -32,10 +32,10 @@ export class MongoRepository<T> {
    * Finds a record by id
    *
    * @param {string} id
-   * @returns {Promise<T>}
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  findById(id: string): Promise<T> {
+  findById(id: string): Promise<DOC> {
     return this.findOne({ _id: new ObjectID(id) });
   }
 
@@ -46,11 +46,11 @@ export class MongoRepository<T> {
    * @returns {Promise<T[]>}
    * @memberof MongoRepository
    */
-  async findManyById(ids: string[]): Promise<T[]> {
+  async findManyById(ids: string[]): Promise<DOC[]> {
     const collection = await this.collection;
     const found = await collection.find({ _id: { $in: ids.map(id => new ObjectID(id)) } }).toArray();
 
-    const results: T[] = [];
+    const results: DOC[] = [];
     for (const result of found) {
       results.push(await this.invokeEvents(POST_KEY, ['find', 'findMany'], this.toggleId(result, false)));
     }
@@ -62,10 +62,10 @@ export class MongoRepository<T> {
    * Finds a record by a list of conditions
    *
    * @param {object} conditions
-   * @returns {Promise<T>}
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  async findOne(conditions: object): Promise<T> {
+  async findOne(conditions: object): Promise<DOC> {
     const collection = await this.collection;
     const cursor = collection.find(conditions).limit(1);
 
@@ -85,7 +85,7 @@ export class MongoRepository<T> {
    * @returns {Promise<T[]>}
    * @memberof MongoRepository
    */
-  async find(req: FindRequest = { conditions: {} }): Promise<T[]> {
+  async find(req: FindRequest = { conditions: {} }): Promise<DOC[]> {
     const collection = await this.collection;
 
     const conditions = this.toggleId(req.conditions, true);
@@ -118,14 +118,14 @@ export class MongoRepository<T> {
   /**
    * Create a document of type T
    *
-   * @param {T} document
-   * @returns {Promise<T>}
+   * @param {DTO} document
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  async create(document: T): Promise<T> {
+  async create(document: DTO): Promise<DOC> {
     const collection = await this.collection;
-    document = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
-    const res = await collection.insertOne(document);
+    const eventResult: unknown = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
+    const res = await collection.insertOne(eventResult as DOC);
 
     let newDocument = res.ops[0];
     newDocument = this.toggleId(newDocument, false);
@@ -137,10 +137,10 @@ export class MongoRepository<T> {
    * Save any changes to your document
    *
    * @param {Document} document
-   * @returns {Promise<T>}
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  async save(document: Document): Promise<T> {
+  async save(document: Document): Promise<DOC> {
     const collection = await this.collection;
 
     // flip/flop ids
@@ -170,10 +170,10 @@ export class MongoRepository<T> {
    *
    * @param {string} id
    * @param {UpdateByIdRequest} req
-   * @returns {Promise<T>}
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  async findOneByIdAndUpdate(id: string, req: UpdateByIdRequest): Promise<T> {
+  async findOneByIdAndUpdate(id: string, req: UpdateByIdRequest): Promise<DOC> {
     return this.findOneAndUpdate({
       conditions: { _id: new ObjectID(id) },
       updates: req.updates,
@@ -185,10 +185,10 @@ export class MongoRepository<T> {
    * Find a record and update with new values
    *
    * @param {UpdateRequest} req
-   * @returns {Promise<T>}
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  async findOneAndUpdate(req: UpdateRequest): Promise<T> {
+  async findOneAndUpdate(req: UpdateRequest): Promise<DOC> {
     const collection = await this.collection;
     const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
 
@@ -211,9 +211,7 @@ export class MongoRepository<T> {
    * @memberof MongoRepository
    */
   async deleteOneById(id: string): Promise<DeleteWriteOpResultObject> {
-    return this.deleteOne({
-      _id: new ObjectID(id)
-    });
+    return this.deleteOne({ _id: new ObjectID(id) });
   }
 
   /**
@@ -251,15 +249,37 @@ export class MongoRepository<T> {
   }
 
   /**
+   * Strip off Mongo's ObjectID and replace with string representation or in reverese
+   *
+   * @private
+   * @param {*} document
+   * @param {boolean} replace
+   * @returns {T}
+   * @memberof MongoRepository
+   */
+  protected toggleId(document: any, replace: boolean): DOC {
+    if (document && (document.id || document._id)) {
+      if (replace) {
+        document._id = new ObjectID(document.id);
+        delete document.id;
+      } else {
+        document.id = document._id.toString();
+        delete document._id;
+      }
+    }
+    return document;
+  }
+
+  /**
    * Return a collection
    * If the collection doesn't exist, it will create it with the given options
    *
    * @private
-   * @returns {Promise<Collection<T>>}
+   * @returns {Promise<Collection<DOC>>}
    * @memberof MongoRepository
    */
-  private getCollection(): Promise<Collection<T>> {
-    return new Promise<Collection<T>>(async (resolve, reject) => {
+  private getCollection(): Promise<Collection<DOC>> {
+    return new Promise<Collection<DOC>>(async (resolve, reject) => {
       const db = await this.dbSource.db;
       db.collection(this.options.name, { strict: true }, async (err, collection) => {
         let ourCollection = collection;
@@ -307,38 +327,16 @@ export class MongoRepository<T> {
   }
 
   /**
-   * Strip off Mongo's ObjectID and replace with string representation or in reverese
-   *
-   * @private
-   * @param {*} document
-   * @param {boolean} replace
-   * @returns {T}
-   * @memberof MongoRepository
-   */
-  private toggleId(document: any, replace: boolean): T {
-    if (document && (document.id || document._id)) {
-      if (replace) {
-        document._id = new ObjectID(document.id);
-        delete document.id;
-      } else {
-        document.id = document._id.toString();
-        delete document._id;
-      }
-    }
-    return document;
-  }
-
-  /**
    * Apply functions to a record based on the type of event
    *
    * @private
    * @param {string} type any of the valid types, PRE_KEY POST_KEY
    * @param {string[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
    * @param {*} document The document to apply functions to
-   * @returns {Promise<T>}
+   * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  private async invokeEvents(type: string, fns: string[], document: any): Promise<T> {
+  private async invokeEvents(type: string, fns: string[], document: any): Promise<any> {
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
       for (const event of events) {
