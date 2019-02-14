@@ -18,6 +18,7 @@ export interface FindRequest {
   limit?: number;
   projection?: any;
   sort?: any;
+  skip?: number;
 }
 
 export interface CollectionProps {

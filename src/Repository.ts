@@ -99,6 +99,10 @@ export class MongoRepository<DOC, DTO = DOC> {
       cursor = cursor.sort(req.sort);
     }
 
+    if (req.skip) {
+      cursor = cursor.skip(req.skip);
+    }
+
     if (req.limit) {
       cursor = cursor.limit(req.limit);
     }
