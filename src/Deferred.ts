@@ -12,12 +12,10 @@ export class Deferred<T> {
   promise: Promise<T>;
 
   constructor() {
-    this.promise = new Promise<T>(
-      function(resolve, reject) {
-        this.resolve = resolve;
-        this.reject = reject;
-      }.bind(this)
-    );
+    this.promise = new Promise<T>((resolve, reject) => {
+      this.resolve = resolve;
+      this.reject = reject;
+    });
     Object.freeze(this);
   }
 }
