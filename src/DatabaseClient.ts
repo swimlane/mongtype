@@ -71,7 +71,7 @@ export class DatabaseClient extends EventEmitter {
       const operation = retry.operation();
       operation.attempt(async attempt => {
         try {
-          const client = await MongoClient.connect(uri);
+          const client = await MongoClient.connect(uri, { useNewUrlParser: true });
           this.emit('connected', client);
           resolve(client);
         } catch (e) {
