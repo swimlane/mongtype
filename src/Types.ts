@@ -49,3 +49,14 @@ export interface DBSource {
   client: Promise<MongoClient>;
   db: Promise<Db>;
 }
+
+export type MongoEvent = "create" |
+  "delete" |
+  "deleteMany" |
+  "deleteOne" |
+  "find" |
+  "findMany" |
+  "findOne" |
+  "save" |
+  "update" |
+  "updateOne";

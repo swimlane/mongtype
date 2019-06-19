@@ -1,4 +1,4 @@
-import { COLLECTION_KEY, CollectionProps, POST_KEY, PRE_KEY } from './Types';
+import { COLLECTION_KEY, CollectionProps, POST_KEY, PRE_KEY, MongoEvent } from './Types';
 
 /**
  * Indicate the class represents a collection
@@ -27,10 +27,10 @@ export function Collection(props: CollectionProps) {
  * - updateOne
  *
  * @export
- * @param {...string[]} events a list of events
+ * @param {...MongoEvent[]} events a list of events
  * @returns
  */
-export function Before(...events: string[]) {
+export function Before(...events: MongoEvent[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
     for (const event of events) {
       const fns = Reflect.getMetadata(`${PRE_KEY}_${event}`, target) || [];
@@ -56,10 +56,10 @@ export function Before(...events: string[]) {
  * - updateOne
  *
  * @export
- * @param {...string[]} events a list of events
+ * @param {...MongoEvent[]} events a list of events
  * @returns
  */
-export function After(...events: string[]) {
+export function After(...events: MongoEvent[]) {
   return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
     for (const event of events) {
       const fns = Reflect.getMetadata(`${POST_KEY}_${event}`, target) || [];
