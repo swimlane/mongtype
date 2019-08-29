@@ -1,5 +1,9 @@
 # Upgrade Guide
 
+## 3.x to 4.x Upgrade Guide
+
+Update to Database Client to allow users to provide `MongoClientOptions` to `DatabaseClient.connect()`. This changes the argument order so it's not backwards compatible with Mongtype 3.x
+
 ## 2.x to 3.x Upgrade Guide
 
 Mongtype now uses the 3.x branch of the MongoDB native driver!

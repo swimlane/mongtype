@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { Db, MongoClient } from 'mongodb';
+import { Db, MongoClient, MongoClientOptions } from 'mongodb';
 import * as retry from 'retry';
 
 import { Deferred } from './Deferred';
@@ -28,18 +28,18 @@ export class DatabaseClient extends EventEmitter {
   /**
    * Connect to the mongodb
    *
-   * @param {string} uri The uri of the MongoDB instance
-   * @param {(MongoClient|Promise<MongoClient>)} [client] Optional instantiated MongoDB connection
-   * @returns {Promise<MongoClient>}
+   * @param uri The uri of the MongoDB instance
+   * @param [userOpts] Optional options for your MongoDb connection
+   * @param [client] Optional instantiated MongoDB connection
    * @memberof DatabaseClient
    */
-  async connect(uri: string, client?: MongoClient | Promise<MongoClient>): Promise<Db> {
+  async connect(uri: string, userOpts?: MongoClientOptions, client?: MongoClient | Promise<MongoClient>): Promise<Db> {
     this.uri = uri;
 
     if (client !== undefined) {
       this.deferredClient.resolve(client);
     } else {
-      this.deferredClient.resolve(this.createClient(this.uri));
+      this.deferredClient.resolve(this.createClient(this.uri, userOpts));
     }
 
     this.deferredDb.resolve((await this.client).db());
@@ -49,7 +49,6 @@ export class DatabaseClient extends EventEmitter {
   /**
    * Close the connection
    *
-   * @returns {Promise<void>}
    * @memberof DatabaseClient
    */
   async close(): Promise<void> {
@@ -62,16 +61,16 @@ export class DatabaseClient extends EventEmitter {
    * Will retry if connection fails initially
    *
    * @private
-   * @param {string} uri
-   * @returns {Promise<MongoClient>}
+   * @param uri
    * @memberof DatabaseClient
    */
-  private createClient(uri: string): Promise<MongoClient> {
+  private createClient(uri: string, userOpts?: MongoClientOptions): Promise<MongoClient> {
     return new Promise<MongoClient>((resolve, reject) => {
       const operation = retry.operation();
+      const opts = Object.assign({}, { useNewUrlParser: true }, userOpts);
       operation.attempt(async attempt => {
         try {
-          const client = await MongoClient.connect(uri, { useNewUrlParser: true });
+          const client = await MongoClient.connect(uri, opts);
           this.emit('connected', client);
           resolve(client);
         } catch (e) {
