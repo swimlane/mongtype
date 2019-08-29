@@ -1,4 +1,4 @@
-import { Collection, Db, DeleteWriteOpResultObject, MongoClient, ObjectID, UpdateWriteOpResult } from 'mongodb';
+import { Collection, DeleteWriteOpResultObject, ObjectID } from 'mongodb';
 
 import {
   COLLECTION_KEY,
@@ -48,7 +48,8 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async findManyById(ids: string[]): Promise<DOC[]> {
     const collection = await this.collection;
-    const found = await collection.find({ _id: { $in: ids.map(id => new ObjectID(id)) } }).toArray();
+    const query = { _id: { $in: ids.map(id => new ObjectID(id)) } };
+    const found = await collection.find(<object>query).toArray();
 
     const results: DOC[] = [];
     for (const result of found) {
@@ -67,11 +68,9 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async findOne(conditions: object): Promise<DOC> {
     const collection = await this.collection;
-    const cursor = collection.find(conditions).limit(1);
 
-    const res = await cursor.toArray();
-    if (res && res.length) {
-      let document = res[0];
+    let document = await collection.findOne(conditions);
+    if (document) {
       document = this.toggleId(document, false);
       document = await this.invokeEvents(POST_KEY, ['find', 'findOne'], document);
       return document;
@@ -153,8 +152,9 @@ export class MongoRepository<DOC, DTO = DOC> {
     const updates = await this.invokeEvents(PRE_KEY, ['save'], document);
     delete updates['id'];
     delete updates['_id'];
-    const res = await collection.updateOne({ _id: id }, { $set: updates }, { upsert: true });
-    let newDocument = await collection.findOne({ _id: id });
+    const query = { _id: id };
+    const res = await collection.updateOne(<object>query, { $set: updates }, { upsert: true });
+    let newDocument = await collection.findOne(<object>query);
 
     // project new items
     if (newDocument) {
@@ -253,7 +253,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   }
 
   /**
-   * Strip off Mongo's ObjectID and replace with string representation or in reverese
+   * Strip off Mongo's ObjectID and replace with string representation or in reverse
    *
    * @private
    * @param {*} document
