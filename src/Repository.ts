@@ -14,17 +14,22 @@ import {
 
 export class MongoRepository<DOC, DTO = DOC> {
   collection: Promise<Collection<DOC>>;
+  readonly options: CollectionProps;
 
-  get options(): CollectionProps {
-    return Reflect.getMetadata(COLLECTION_KEY, this);
-  }
+  // get options(): CollectionProps {
+  //   return Reflect.getMetadata(COLLECTION_KEY, this);
+  // }
 
   /**
    * Creates an instance of MongoRepository.
    * @param {DBSource} dbSource Your MongoDB connection
    * @memberof MongoRepository
    */
-  constructor(public dbSource: DBSource) {
+  constructor(public dbSource: DBSource, opts?: CollectionProps) {
+    this.options = Object.assign({}, opts, Reflect.getMetadata(COLLECTION_KEY, this));
+    if (!this.options.name) {
+      throw new Error('No name was provided for this collection');
+    }
     this.collection = this.getCollection();
   }
 

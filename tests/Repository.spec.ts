@@ -48,6 +48,8 @@ describe('MongoRepository', () => {
     })
     class UserRepository extends MongoRepository<User> {}
 
+    class UserRepositoryNoDecorator extends MongoRepository<User> {}
+
     it('should create a collection', async () => {
       const dbc = await getDb();
       const mockDb = await dbc.db;
@@ -57,6 +59,27 @@ describe('MongoRepository', () => {
 
       const collection = mockDb.collection(COLLECTION_NAME);
       expect(collection.collectionName).to.equal(COLLECTION_NAME);
+      dbc.close();
+    });
+
+    it('should create a collection with supplied options instead of decorator', async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const name = COLLECTION_NAME + '_noDecorator';
+      const repo = new UserRepositoryNoDecorator(dbc, { name });
+
+      await repo.collection; // wait for collection to be created
+
+      const collection = mockDb.collection(name);
+      expect(collection.collectionName).to.equal(name);
+      dbc.close();
+    });
+
+    it('should throw an error if no collection name is provided', async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+
+      expect(() => new UserRepositoryNoDecorator(dbc)).to.throw(/No name was provided for this collection/);
       dbc.close();
     });
 
