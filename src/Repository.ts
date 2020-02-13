@@ -234,7 +234,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     const collection = await this.collection;
 
     await this.invokeEvents(PRE_KEY, ['delete', 'deleteOne'], conditions);
-    const deleteResult = collection.deleteOne(conditions);
+    const deleteResult = await collection.deleteOne(conditions);
     await this.invokeEvents(POST_KEY, ['delete', 'deleteOne'], deleteResult);
 
     return deleteResult;
@@ -251,7 +251,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     const collection = await this.collection;
 
     await this.invokeEvents(PRE_KEY, ['delete', 'deleteMany'], conditions);
-    const deleteResult = collection.deleteMany(conditions);
+    const deleteResult = await collection.deleteMany(conditions);
     await this.invokeEvents(POST_KEY, ['delete', 'deleteMany'], deleteResult);
 
     return deleteResult;
