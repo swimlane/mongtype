@@ -132,11 +132,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async create(document: DTO): Promise<DOC> {
     const collection = await this.collection;
-    const eventResult: unknown = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
-    const res = await collection.insertOne(eventResult as DOC);
+    const eventResult = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
+    const res = await collection.insertOne(eventResult);
 
-    let newDocument = res.ops[0];
-    newDocument = this.toggleId(newDocument, false);
+    let newDocument = this.toggleId(res.ops[0], false);
     newDocument = await this.invokeEvents(POST_KEY, ['save', 'create'], newDocument);
     return newDocument;
   }
