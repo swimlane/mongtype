@@ -4,6 +4,17 @@ import * as retry from 'retry';
 
 import { Deferred } from './Deferred';
 
+const retryOptsDefault: retry.OperationOptions = {
+  retries: 5,
+  factor: 3,
+  minTimeout: 1000,
+  maxTimeout: 60000,
+  randomize: true,
+  forever: false,
+  maxRetryTime: undefined,
+  unref: false
+};
+
 export class DatabaseClient extends EventEmitter {
   client: Promise<MongoClient>;
   db: Promise<Db>;
@@ -31,15 +42,23 @@ export class DatabaseClient extends EventEmitter {
    * @param uri The uri of the MongoDB instance
    * @param [userOpts] Optional options for your MongoDb connection
    * @param [client] Optional instantiated MongoDB connection
+   * @param [retryOptions] Optional retry options for when initial connection fails. See https://github.com/tim-kos/node-retry#retryoperationoptions
+   * @param [onRetryCallback] Optional. Will be invoked with current number of retry attempts and error reason for current attempt
    * @memberof DatabaseClient
    */
-  async connect(uri: string, userOpts?: MongoClientOptions, client?: MongoClient | Promise<MongoClient>): Promise<Db> {
+  async connect(
+    uri: string,
+    userOpts?: MongoClientOptions,
+    client?: MongoClient | Promise<MongoClient>,
+    retryOptions?: retry.OperationOptions,
+    onRetryCallback?: (attempts: number, err: any) => void
+  ): Promise<Db> {
     this.uri = uri;
 
     if (client !== undefined) {
       this.deferredClient.resolve(client);
     } else {
-      this.deferredClient.resolve(this.createClient(this.uri, userOpts));
+      this.deferredClient.resolve(this.createClient(this.uri, userOpts, retryOptions, onRetryCallback));
     }
 
     this.deferredDb.resolve((await this.client).db());
@@ -64,9 +83,15 @@ export class DatabaseClient extends EventEmitter {
    * @param uri
    * @memberof DatabaseClient
    */
-  private createClient(uri: string, userOpts?: MongoClientOptions): Promise<MongoClient> {
+  private createClient(
+    uri: string,
+    userOpts?: MongoClientOptions,
+    retryOptions?: retry.OperationOptions,
+    onRetryCallback?: (attempts: number, err: any) => void
+  ): Promise<MongoClient> {
     return new Promise<MongoClient>((resolve, reject) => {
-      const operation = retry.operation();
+      const retryOpts = Object.assign({}, retryOptsDefault, retryOptions);
+      const operation = retry.operation(retryOpts);
       const opts = Object.assign({}, { useNewUrlParser: true }, userOpts);
       operation.attempt(async attempt => {
         try {
@@ -74,7 +99,10 @@ export class DatabaseClient extends EventEmitter {
           this.emit('connected', client);
           resolve(client);
         } catch (e) {
-          if (operation.retry(e)) return;
+          if (operation.retry(e)) {
+            if (onRetryCallback) onRetryCallback(attempt, e);
+            return;
+          }
           this.emit('error', e);
           reject(e);
         }
