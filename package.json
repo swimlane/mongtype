@@ -1,6 +1,6 @@
 {
   "name": "mongtype",
-  "version": "4.0.2",
+  "version": "4.1.0",
   "description": "Mongo Repository for Node written in TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -50,14 +50,14 @@
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "ts-node": "^8.6.2",
-    "tslint": "^6.0.0",
+    "tslint": "^6.1.1",
     "tslint-config-security": "^1.16.0",
     "tslint-config-swimlane": "^4.0.0",
     "typescript": "^3.7.5"
   },
   "dependencies": {
     "@types/mongodb": "^3.3.16",
-    "mongodb": "^3.5.3",
+    "mongodb": "^3.5.5",
     "retry": "^0.12.0"
   },
   "peerDependencies": {
