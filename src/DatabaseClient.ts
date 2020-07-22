@@ -42,8 +42,10 @@ export class DatabaseClient extends EventEmitter {
    * @param uri The uri of the MongoDB instance
    * @param [userOpts] Optional options for your MongoDb connection
    * @param [client] Optional instantiated MongoDB connection
-   * @param [retryOptions] Optional retry options for when initial connection fails. See https://github.com/tim-kos/node-retry#retryoperationoptions
-   * @param [onRetryCallback] Optional. Will be invoked with current number of retry attempts and error reason for current attempt
+   * @param [retryOptions] Optional retry options for when initial connection fails.
+   *  See https://github.com/tim-kos/node-retry#retryoperationoptions
+   * @param [onRetryCallback] Optional. Will be invoked with current number of retry
+   *  attempts and error reason for current attempt
    * @memberof DatabaseClient
    */
   async connect(
