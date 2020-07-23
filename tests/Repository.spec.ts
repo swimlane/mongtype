@@ -290,6 +290,14 @@ describe('MongoRepository', () => {
         }
         return newDoc;
       }
+
+      @After('create', 'delete')
+      async protec(newDoc: Dog, oldDoc?: Dog, fn?: string): Promise<Dog> {
+        if (fn === 'delete') {
+          throw new Error(`you wouldn't delete a dog would you?`);
+        }
+        return newDoc;
+      }
     }
 
     it('should set all new dogs to good', async () => {
@@ -387,6 +395,22 @@ describe('MongoRepository', () => {
         throw new Error('We allowed spot to change names to ' + badDog.firstName + '!');
       } catch (err) {
         expect(err.message).to.equal(`We allowed spot to change names to somethingelse!`);
+      }
+
+      dbc.close();
+    });
+
+    it(`should prevent deleting a dog`, async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: 'spot', type: 'mutt' });
+      try {
+        const badDog = await repo.deleteOne(puppers);
+        throw new Error('We deleted spot!');
+      } catch (err) {
+        expect(err.message).to.equal(`you wouldn't delete a dog would you?`);
       }
 
       dbc.close();

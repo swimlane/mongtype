@@ -295,7 +295,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
       for (const event of events) {
-        newDocument = event.bind(this)(newDocument, oldDocument);
+        newDocument = event.bind(this)(newDocument, oldDocument, fn);
         if (typeof newDocument.then === 'function') {
           newDocument = await newDocument;
         }
