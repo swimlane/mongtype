@@ -288,7 +288,7 @@ describe('MongoRepository', () => {
       async convert(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
         if (
           args.originalDocument &&
-          args.originalDocument.firstName === 'fido' &&
+          args.originalDocument.firstName === 'FIDO' &&
           args.originalDocument.firstName !== newDoc.firstName
         ) {
           throw new Error(`don't change fido's name!`);

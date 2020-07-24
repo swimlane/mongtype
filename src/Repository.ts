@@ -161,7 +161,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     delete updates['id'];
     delete updates['_id'];
     const query = { _id: id };
-    const originalDoc = await collection.findOne(<object>query);
+    const originalDoc = await this.findOne(<object>query);
     const res = await collection.updateOne(<object>query, { $set: updates }, { upsert: true });
     let newDocument = await collection.findOne(<object>query);
 
@@ -174,12 +174,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     newDocument['id'] = id.toString();
     delete newDocument['_id'];
 
-    newDocument = await this.invokeEvents(
-      POST_KEY,
-      [RepoOperation.save],
-      newDocument,
-      this.toggleId(originalDoc, false)
-    );
+    newDocument = await this.invokeEvents(POST_KEY, [RepoOperation.save], newDocument, originalDoc);
     return newDocument;
   }
 
@@ -210,7 +205,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     const collection = await this.collection;
     const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.update, RepoOperation.updateOne], req.updates);
 
-    const originalDoc = await collection.findOne(req.conditions);
+    const originalDoc = await this.findOne(req.conditions);
     const res = await collection.findOneAndUpdate(req.conditions, updates, {
       upsert: req.upsert,
       returnOriginal: false
@@ -222,7 +217,7 @@ export class MongoRepository<DOC, DTO = DOC> {
       POST_KEY,
       [RepoOperation.update, RepoOperation.updateOne],
       document,
-      this.toggleId(originalDoc, false)
+      originalDoc
     );
     return document;
   }
