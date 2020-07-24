@@ -49,3 +49,22 @@ export interface DBSource {
   client: Promise<MongoClient>;
   db: Promise<Db>;
 }
+
+export interface RepoEventArgs {
+  originalDocument?: any;
+  operation: RepoOperation;
+  operationType: string;
+}
+
+export enum RepoOperation {
+  'create' = 'create',
+  'find' = 'find',
+  'update' = 'update',
+  'updateOne' = 'updateOne',
+  'delete' = 'delete',
+  'deleteMany' = 'deleteMany',
+  'deleteOne' = 'deleteOne',
+  'findMany' = 'findMany',
+  'findOne' = 'findOne',
+  'save' = 'save'
+}

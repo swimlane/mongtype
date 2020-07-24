@@ -9,7 +9,9 @@ import {
   POST_KEY,
   PRE_KEY,
   UpdateByIdRequest,
-  UpdateRequest
+  UpdateRequest,
+  RepoEventArgs,
+  RepoOperation
 } from './Types';
 
 export class MongoRepository<DOC, DTO = DOC> {
@@ -58,7 +60,9 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     const results: DOC[] = [];
     for (const result of found) {
-      results.push(await this.invokeEvents(POST_KEY, ['find', 'findMany'], this.toggleId(result, false)));
+      results.push(
+        await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findMany], this.toggleId(result, false))
+      );
     }
 
     return results;
@@ -77,7 +81,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     let document = await collection.findOne(conditions);
     if (document) {
       document = this.toggleId(document, false);
-      document = await this.invokeEvents(POST_KEY, ['find', 'findOne'], document);
+      document = await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findOne], document);
       return document;
     }
   }
@@ -116,7 +120,7 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     for (let document of newDocuments) {
       document = this.toggleId(document, false);
-      document = await this.invokeEvents(POST_KEY, ['find', 'findMany'], document);
+      document = await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findMany], document);
       results.push(document);
     }
 
@@ -132,11 +136,11 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async create(document: DTO): Promise<DOC> {
     const collection = await this.collection;
-    const eventResult = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
+    const eventResult = await this.invokeEvents(PRE_KEY, [RepoOperation.save, RepoOperation.create], document);
     const res = await collection.insertOne(eventResult);
 
     let newDocument = this.toggleId(res.ops[0], false);
-    newDocument = await this.invokeEvents(POST_KEY, ['save', 'create'], newDocument);
+    newDocument = await this.invokeEvents(POST_KEY, [RepoOperation.save, RepoOperation.create], newDocument);
     return newDocument;
   }
 
@@ -153,7 +157,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     // flip/flop ids
     const id = new ObjectID(document.id);
 
-    const updates = await this.invokeEvents(PRE_KEY, ['save'], document);
+    const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.save], document);
     delete updates['id'];
     delete updates['_id'];
     const query = { _id: id };
@@ -170,7 +174,12 @@ export class MongoRepository<DOC, DTO = DOC> {
     newDocument['id'] = id.toString();
     delete newDocument['_id'];
 
-    newDocument = await this.invokeEvents(POST_KEY, ['save'], newDocument, originalDoc);
+    newDocument = await this.invokeEvents(
+      POST_KEY,
+      [RepoOperation.save],
+      newDocument,
+      this.toggleId(originalDoc, false)
+    );
     return newDocument;
   }
 
@@ -199,7 +208,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async findOneAndUpdate(req: UpdateRequest): Promise<DOC> {
     const collection = await this.collection;
-    const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
+    const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.update, RepoOperation.updateOne], req.updates);
 
     const originalDoc = await collection.findOne(req.conditions);
     const res = await collection.findOneAndUpdate(req.conditions, updates, {
@@ -209,7 +218,12 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     let document = res.value;
     document = this.toggleId(document, false);
-    document = await this.invokeEvents(POST_KEY, ['update', 'updateOne'], document, originalDoc);
+    document = await this.invokeEvents(
+      POST_KEY,
+      [RepoOperation.update, RepoOperation.updateOne],
+      document,
+      this.toggleId(originalDoc, false)
+    );
     return document;
   }
 
@@ -234,9 +248,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    await this.invokeEvents(PRE_KEY, ['delete', 'deleteOne'], conditions);
+    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], conditions);
     const deleteResult = await collection.deleteOne(conditions);
-    await this.invokeEvents(POST_KEY, ['delete', 'deleteOne'], deleteResult);
+    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], deleteResult);
 
     return deleteResult;
   }
@@ -251,9 +265,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteMany(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    await this.invokeEvents(PRE_KEY, ['delete', 'deleteMany'], conditions);
+    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], conditions);
     const deleteResult = await collection.deleteMany(conditions);
-    await this.invokeEvents(POST_KEY, ['delete', 'deleteMany'], deleteResult);
+    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteMany], deleteResult);
 
     return deleteResult;
   }
@@ -291,11 +305,21 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */
-  protected async invokeEvents(type: string, fns: string[], newDocument: any, oldDocument?: any): Promise<any> {
+  protected async invokeEvents(
+    type: string,
+    fns: RepoOperation[],
+    newDocument: any,
+    originalDocument?: any
+  ): Promise<any> {
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
       for (const event of events) {
-        newDocument = event.bind(this)(newDocument, oldDocument, fn);
+        const repoEventArgs: RepoEventArgs = {
+          originalDocument,
+          operation: fn,
+          operationType: type
+        };
+        newDocument = event.bind(this)(newDocument, repoEventArgs);
         if (typeof newDocument.then === 'function') {
           newDocument = await newDocument;
         }

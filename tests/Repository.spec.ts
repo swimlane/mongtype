@@ -6,6 +6,7 @@ import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
 import * as faker from 'faker';
+import { RepoEventArgs, RepoOperation } from '../src/Types';
 
 describe('MongoRepository', () => {
   const dbs = [];
@@ -284,16 +285,20 @@ describe('MongoRepository', () => {
       }
 
       @After('save', 'update')
-      async convert(newDoc: Dog, oldDoc?: Dog): Promise<Dog> {
-        if (oldDoc && oldDoc.firstName === 'fido' && oldDoc.firstName !== newDoc.firstName) {
+      async convert(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
+        if (
+          args.originalDocument &&
+          args.originalDocument.firstName === 'fido' &&
+          args.originalDocument.firstName !== newDoc.firstName
+        ) {
           throw new Error(`don't change fido's name!`);
         }
         return newDoc;
       }
 
       @After('create', 'delete')
-      async protec(newDoc: Dog, oldDoc?: Dog, fn?: string): Promise<Dog> {
-        if (fn === 'delete') {
+      async protec(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
+        if (args.operation === RepoOperation.delete) {
           throw new Error(`you wouldn't delete a dog would you?`);
         }
         return newDoc;
