@@ -9,7 +9,9 @@ import {
   POST_KEY,
   PRE_KEY,
   UpdateByIdRequest,
-  UpdateRequest
+  UpdateRequest,
+  RepoEventArgs,
+  RepoOperation
 } from './Types';
 
 export class MongoRepository<DOC, DTO = DOC> {
@@ -58,7 +60,9 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     const results: DOC[] = [];
     for (const result of found) {
-      results.push(await this.invokeEvents(POST_KEY, ['find', 'findMany'], this.toggleId(result, false)));
+      results.push(
+        await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findMany], this.toggleId(result, false))
+      );
     }
 
     return results;
@@ -77,7 +81,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     let document = await collection.findOne(conditions);
     if (document) {
       document = this.toggleId(document, false);
-      document = await this.invokeEvents(POST_KEY, ['find', 'findOne'], document);
+      document = await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findOne], document);
       return document;
     }
   }
@@ -116,7 +120,7 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     for (let document of newDocuments) {
       document = this.toggleId(document, false);
-      document = await this.invokeEvents(POST_KEY, ['find', 'findMany'], document);
+      document = await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findMany], document);
       results.push(document);
     }
 
@@ -132,11 +136,11 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async create(document: DTO): Promise<DOC> {
     const collection = await this.collection;
-    const eventResult = await this.invokeEvents(PRE_KEY, ['save', 'create'], document);
+    const eventResult = await this.invokeEvents(PRE_KEY, [RepoOperation.save, RepoOperation.create], document);
     const res = await collection.insertOne(eventResult);
 
     let newDocument = this.toggleId(res.ops[0], false);
-    newDocument = await this.invokeEvents(POST_KEY, ['save', 'create'], newDocument);
+    newDocument = await this.invokeEvents(POST_KEY, [RepoOperation.save, RepoOperation.create], newDocument);
     return newDocument;
   }
 
@@ -153,10 +157,11 @@ export class MongoRepository<DOC, DTO = DOC> {
     // flip/flop ids
     const id = new ObjectID(document.id);
 
-    const updates = await this.invokeEvents(PRE_KEY, ['save'], document);
+    const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.save], document);
     delete updates['id'];
     delete updates['_id'];
     const query = { _id: id };
+    const originalDoc = await this.findOne(<object>query);
     const res = await collection.updateOne(<object>query, { $set: updates }, { upsert: true });
     let newDocument = await collection.findOne(<object>query);
 
@@ -169,7 +174,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     newDocument['id'] = id.toString();
     delete newDocument['_id'];
 
-    newDocument = await this.invokeEvents(POST_KEY, ['save'], newDocument);
+    newDocument = await this.invokeEvents(POST_KEY, [RepoOperation.save], newDocument, originalDoc);
     return newDocument;
   }
 
@@ -198,8 +203,9 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   async findOneAndUpdate(req: UpdateRequest): Promise<DOC> {
     const collection = await this.collection;
-    const updates = await this.invokeEvents(PRE_KEY, ['update', 'updateOne'], req.updates);
+    const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.update, RepoOperation.updateOne], req.updates);
 
+    const originalDoc = await this.findOne(req.conditions);
     const res = await collection.findOneAndUpdate(req.conditions, updates, {
       upsert: req.upsert,
       returnOriginal: false
@@ -207,7 +213,12 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     let document = res.value;
     document = this.toggleId(document, false);
-    document = await this.invokeEvents(POST_KEY, ['update', 'updateOne'], document);
+    document = await this.invokeEvents(
+      POST_KEY,
+      [RepoOperation.update, RepoOperation.updateOne],
+      document,
+      originalDoc
+    );
     return document;
   }
 
@@ -232,9 +243,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    await this.invokeEvents(PRE_KEY, ['delete', 'deleteOne'], conditions);
+    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], conditions);
     const deleteResult = await collection.deleteOne(conditions);
-    await this.invokeEvents(POST_KEY, ['delete', 'deleteOne'], deleteResult);
+    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], deleteResult);
 
     return deleteResult;
   }
@@ -249,9 +260,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteMany(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    await this.invokeEvents(PRE_KEY, ['delete', 'deleteMany'], conditions);
+    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], conditions);
     const deleteResult = await collection.deleteMany(conditions);
-    await this.invokeEvents(POST_KEY, ['delete', 'deleteMany'], deleteResult);
+    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteMany], deleteResult);
 
     return deleteResult;
   }
@@ -276,6 +287,41 @@ export class MongoRepository<DOC, DTO = DOC> {
       }
     }
     return document;
+  }
+
+  /**
+   * Apply functions to a record based on the type of event
+   *
+   * @private
+   * @param {string} type any of the valid types, PRE_KEY POST_KEY
+   * @param {RepoOperation[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
+   * @param {*} newDocument The document to apply functions to
+   * @param {*} oldDocument The original document before changes were applied
+   * @returns {Promise<DOC>}
+   * @memberof MongoRepository
+   */
+  protected async invokeEvents(
+    type: string,
+    fns: RepoOperation[],
+    newDocument: any,
+    originalDocument?: any
+  ): Promise<any> {
+    for (const fn of fns) {
+      const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
+      for (const event of events) {
+        const repoEventArgs: RepoEventArgs = {
+          originalDocument,
+          operation: fn,
+          operationType: type
+        };
+        newDocument = event.bind(this)(newDocument, repoEventArgs);
+        if (typeof newDocument.then === 'function') {
+          newDocument = await newDocument;
+        }
+      }
+    }
+
+    return newDocument;
   }
 
   /**
@@ -332,29 +378,5 @@ export class MongoRepository<DOC, DTO = DOC> {
         resolve(ourCollection);
       });
     });
-  }
-
-  /**
-   * Apply functions to a record based on the type of event
-   *
-   * @private
-   * @param {string} type any of the valid types, PRE_KEY POST_KEY
-   * @param {string[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
-   * @param {*} document The document to apply functions to
-   * @returns {Promise<DOC>}
-   * @memberof MongoRepository
-   */
-  private async invokeEvents(type: string, fns: string[], document: any): Promise<any> {
-    for (const fn of fns) {
-      const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
-      for (const event of events) {
-        document = event.bind(this)(document);
-        if (typeof document.then === 'function') {
-          document = await document;
-        }
-      }
-    }
-
-    return document;
   }
 }

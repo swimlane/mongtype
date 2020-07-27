@@ -6,6 +6,7 @@ import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
 import * as faker from 'faker';
+import { RepoEventArgs, RepoOperation } from '../src/Types';
 
 describe('MongoRepository', () => {
   const dbs = [];
@@ -282,6 +283,26 @@ describe('MongoRepository', () => {
         doc.firstName = doc.firstName.toUpperCase();
         return doc;
       }
+
+      @After('save', 'update')
+      async convert(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
+        if (
+          args.originalDocument &&
+          args.originalDocument.firstName === 'FIDO' &&
+          args.originalDocument.firstName !== newDoc.firstName
+        ) {
+          throw new Error(`don't change fido's name!`);
+        }
+        return newDoc;
+      }
+
+      @After('create', 'delete')
+      async protec(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
+        if (args.operation === RepoOperation.delete) {
+          throw new Error(`you wouldn't delete a dog would you?`);
+        }
+        return newDoc;
+      }
     }
 
     it('should set all new dogs to good', async () => {
@@ -309,6 +330,92 @@ describe('MongoRepository', () => {
         throw new Error('We allowed a bad dog!');
       } catch (err) {
         expect(err.message).to.equal('All dogs are good!');
+      }
+
+      dbc.close();
+    });
+
+    it(`should reject save changing fido's name`, async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: 'fido', type: 'mutt' });
+      try {
+        const badDog = await repo.save({ ...puppers, firstName: 'somethingelse' });
+        throw new Error('We allowed fido to change names!');
+      } catch (err) {
+        expect(err.message).to.equal(`don't change fido's name!`);
+      }
+
+      dbc.close();
+    });
+
+    it(`should allow save changing spot's name`, async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: 'spot', type: 'mutt' });
+      try {
+        const badDog = await repo.save({ ...puppers, firstName: 'somethingelse' });
+        throw new Error('We allowed spot to change names to ' + badDog.firstName + '!');
+      } catch (err) {
+        expect(err.message).to.equal(`We allowed spot to change names to somethingelse!`);
+      }
+
+      dbc.close();
+    });
+
+    it(`should reject update changing fido's name`, async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: 'fido', type: 'mutt' });
+      try {
+        const badDog = await repo.findOneAndUpdate({
+          conditions: { firstName: 'fido' },
+          updates: { firstName: 'somethingelse' }
+        });
+        throw new Error('We allowed fido to change names!');
+      } catch (err) {
+        expect(err.message).to.equal(`don't change fido's name!`);
+      }
+
+      dbc.close();
+    });
+
+    it(`should allow save changing spot's name`, async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: 'spot', type: 'mutt' });
+      try {
+        const badDog = await repo.findOneAndUpdate({
+          conditions: { firstName: 'spot' },
+          updates: { firstName: 'somethingelse' }
+        });
+        throw new Error('We allowed spot to change names to ' + badDog.firstName + '!');
+      } catch (err) {
+        expect(err.message).to.equal(`We allowed spot to change names to somethingelse!`);
+      }
+
+      dbc.close();
+    });
+
+    it(`should prevent deleting a dog`, async () => {
+      const dbc = await getDb();
+      const mockDb = await dbc.db;
+      const repo = new DogRepository(dbc);
+
+      const puppers = await repo.create({ firstName: 'spot', type: 'mutt' });
+      try {
+        const badDog = await repo.deleteOne(puppers);
+        throw new Error('We deleted spot!');
+      } catch (err) {
+        expect(err.message).to.equal(`you wouldn't delete a dog would you?`);
       }
 
       dbc.close();
