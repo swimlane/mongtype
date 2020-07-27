@@ -294,7 +294,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    *
    * @private
    * @param {string} type any of the valid types, PRE_KEY POST_KEY
-   * @param {string[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
+   * @param {RepoOperation[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
    * @param {*} newDocument The document to apply functions to
    * @param {*} oldDocument The original document before changes were applied
    * @returns {Promise<DOC>}
