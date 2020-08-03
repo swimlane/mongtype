@@ -206,19 +206,24 @@ export class MongoRepository<DOC, DTO = DOC> {
     const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.update, RepoOperation.updateOne], req.updates);
 
     const originalDoc = await this.findOne(req.conditions);
+    if (!req.upsert && !originalDoc) {
+      return originalDoc;
+    }
     const res = await collection.findOneAndUpdate(req.conditions, updates, {
       upsert: req.upsert,
       returnOriginal: false
     });
 
     let document = res.value;
-    document = this.toggleId(document, false);
-    document = await this.invokeEvents(
-      POST_KEY,
-      [RepoOperation.update, RepoOperation.updateOne],
-      document,
-      originalDoc
-    );
+    if (document) {
+      document = this.toggleId(document, false);
+      document = await this.invokeEvents(
+        POST_KEY,
+        [RepoOperation.update, RepoOperation.updateOne],
+        document,
+        originalDoc
+      );
+    }
     return document;
   }
 
