@@ -1,12 +1,11 @@
 import 'reflect-metadata';
-import { MongoRepository } from '../src/Repository';
-import { Collection, Before, After } from '../src/Decorators';
-import { DatabaseClient } from '../src/DatabaseClient';
+import { Collection, Before, After, MongoRepository, RepoEventArgs, RepoOperation, DatabaseClient } from '../src';
 import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
 import * as faker from 'faker';
-import { RepoEventArgs, RepoOperation } from '../src/Types';
+import { ObjectId } from 'mongodb';
+import * as clone from 'clone';
 
 describe('MongoRepository', () => {
   const dbs = [];
@@ -47,7 +46,41 @@ describe('MongoRepository', () => {
     @Collection({
       name: COLLECTION_NAME
     })
-    class UserRepository extends MongoRepository<User> {}
+    class UserRepository extends MongoRepository<User> {
+      events: { pre: { [op in RepoOperation]: { args: [] }[] }; post: { [op in RepoOperation]: { args: [] }[] } } = {
+        pre: Object.keys(RepoOperation).reduce((opMap, opName) => {
+          opMap[opName] = [];
+          return opMap;
+        }, {}) as any,
+        post: Object.keys(RepoOperation).reduce((opMap, opName) => {
+          opMap[opName] = [];
+          return opMap;
+        }, {}) as any
+      };
+      clearEvents() {
+        this.events = {
+          pre: Object.keys(RepoOperation).reduce((opMap, opName) => {
+            opMap[opName] = [];
+            return opMap;
+          }, {}) as any,
+          post: Object.keys(RepoOperation).reduce((opMap, opName) => {
+            opMap[opName] = [];
+            return opMap;
+          }, {}) as any
+        };
+      }
+
+      @Before(...Object.keys(RepoOperation))
+      @After(...Object.keys(RepoOperation))
+      captureEvent(...args: any[]) {
+        const eventArgs: RepoEventArgs = args[args.length - 1];
+        if (!this.events[eventArgs.operationType][eventArgs.operation]) {
+          this.events[eventArgs.operationType][eventArgs.operation] = [];
+        }
+        this.events[eventArgs.operationType][eventArgs.operation].push({ args: clone(args) });
+        return args[0]; // return document
+      }
+    }
 
     class UserRepositoryNoDecorator extends MongoRepository<User> {}
 
@@ -119,24 +152,21 @@ describe('MongoRepository', () => {
       const newUser = await repo.save(user);
       expect(newUser.title).to.equal(userObj.title);
 
-      /* Not implemented in mongo-mock
       // Find one by id and update
       // reuse foundUser from above
       userObj.name = faker.name.firstName();
-      const updatedUser = await repo.findOneByIdAndUpdate(foundUser._id, {
+      const updatedUserName = await repo.findOneByIdAndUpdate(foundUser._id, {
         updates: {
           $set: {
             name: userObj.name
           }
-         }
+        }
       });
-      expect(updatedUser.name).to.equal(userObj.name);
-      */
+      expect(updatedUserName.name).to.equal(userObj.name);
 
-      /* Not implemented in mongo-mock
       // Find one and update
       userObj.title = faker.name.jobTitle();
-      const updatedUser = await repo.findOneAndUpdate({
+      const updatedUserTitle = await repo.findOneAndUpdate({
         conditions: {
           name: userObj.name
         },
@@ -144,10 +174,9 @@ describe('MongoRepository', () => {
           $set: {
             title: userObj.title
           }
-         }
+        }
       });
-      expect(updatedUser.title).to.equal(userObj.title);
-      */
+      expect(updatedUserTitle.title).to.equal(userObj.title);
 
       // Delete One by Id
       const deleteOneById = await repo.deleteOneById(foundUser._id);
@@ -160,7 +189,7 @@ describe('MongoRepository', () => {
       dbc.close();
     });
 
-    xit('should delete many records', async () => {
+    it('should delete many records', async () => {
       const dbc = await getDb();
       const mockDb = await dbc.db;
       const repo = new UserRepository(dbc);
@@ -174,6 +203,49 @@ describe('MongoRepository', () => {
       const delRes = await repo.deleteMany({ title });
       expect(delRes.result.n).to.equal(10);
       dbc.close();
+    });
+
+    describe('findOneAndUpdate', function() {
+      it('should short circuit with no document found by id', async () => {
+        const dbc = await getDb();
+        const mockDb = await dbc.db;
+        const repo = new UserRepository(dbc);
+        await repo.create({ name: faker.name.firstName(), title: faker.name.jobTitle() });
+        repo.clearEvents();
+
+        const noUser = await repo.findOneByIdAndUpdate(new ObjectId().toHexString(), {
+          updates: { $set: { title: 'Unicorn Tamer' } }
+        });
+
+        expect(noUser).to.be.undefined;
+        expect(repo.events.post.update).to.be.empty;
+        expect(repo.events.post.updateOne).to.be.empty;
+        expect(repo.events.pre.update).to.be.lengthOf(1);
+        expect(repo.events.pre.updateOne).to.be.lengthOf(1);
+
+        dbc.close();
+      });
+
+      it('should short circuit with no document found', async () => {
+        const dbc = await getDb();
+        const mockDb = await dbc.db;
+        const repo = new UserRepository(dbc);
+        await repo.create({ name: faker.name.firstName(), title: faker.name.jobTitle() });
+        repo.clearEvents();
+
+        const noUser = await repo.findOneAndUpdate({
+          conditions: { name: 'Nonexistent User' },
+          updates: { $set: { title: 'Unicorn Tamer' } }
+        });
+
+        expect(noUser).to.be.undefined;
+        expect(repo.events.post.update).to.be.empty;
+        expect(repo.events.post.updateOne).to.be.empty;
+        expect(repo.events.pre.update).to.be.lengthOf(1);
+        expect(repo.events.pre.updateOne).to.be.lengthOf(1);
+
+        dbc.close();
+      });
     });
   });
 
