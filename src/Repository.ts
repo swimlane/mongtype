@@ -350,7 +350,13 @@ export class MongoRepository<DOC, DTO = DOC> {
               max: this.options.max
             });
           } catch (createErr) {
-            reject(createErr);
+            if (createErr.codeName === 'NamespaceExists') {
+              // race condition. ignore for now, as I can't seem to get
+              // transactions to work in mongo 4.4 as yet
+              ourCollection = db.collection(this.options.name);
+            } else {
+              reject(err);
+            }
           }
         }
 
