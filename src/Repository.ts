@@ -36,6 +36,14 @@ export class MongoRepository<DOC, DTO = DOC> {
   }
 
   /**
+   * Return the document version for the given repo. This method should be
+   * overridden by the subclass. Return 0 to turn off document versioning.
+   */
+  getVersion(): number {
+    return this.options.documentVersion ?? 0;
+  }
+
+  /**
    * Finds a record by id
    *
    * @param {string} id
@@ -137,6 +145,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   async create(document: DTO): Promise<DOC> {
     const collection = await this.collection;
     const eventResult = await this.invokeEvents(PRE_KEY, [RepoOperation.save, RepoOperation.create], document);
+    this.ensureVersion(eventResult);
     const res = await collection.insertOne(eventResult);
 
     let newDocument = this.toggleId(res.ops[0], false);
@@ -160,6 +169,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.save], document);
     delete updates['id'];
     delete updates['_id'];
+    this.ensureVersion(updates);
     const query = { _id: id };
     const originalDoc = await this.findOne(<object>query);
     const res = await collection.updateOne(<object>query, { $set: updates }, { upsert: true });
@@ -187,6 +197,9 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @memberof MongoRepository
    */
   async findOneByIdAndUpdate(id: string, req: UpdateByIdRequest): Promise<DOC> {
+    if (req.upsert) {
+      this.ensureVersion(req.updates);
+    }
     return this.findOneAndUpdate({
       conditions: { _id: new ObjectID(id) },
       updates: req.updates,
@@ -204,7 +217,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async findOneAndUpdate(req: UpdateRequest): Promise<DOC> {
     const collection = await this.collection;
     const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.update, RepoOperation.updateOne], req.updates);
-
+    if (req.upsert) {
+      this.ensureVersion(updates);
+    }
     const originalDoc = await this.findOne(req.conditions);
     if (!req.upsert && !originalDoc) {
       return originalDoc;
@@ -275,7 +290,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   /**
    * Strip off Mongo's ObjectID and replace with string representation or in reverse
    *
-   * @private
+   * @protected
    * @param {*} document
    * @param {boolean} replace
    * @returns {T}
@@ -291,6 +306,23 @@ export class MongoRepository<DOC, DTO = DOC> {
         delete document._id;
       }
     }
+    return document;
+  }
+
+  /**
+   * Ensure that the given document has a version using this.getVersion()
+   *
+   * @protected
+   * @param document
+   * @returns {T}
+   * @memberof MongoRepository
+   */
+  protected ensureVersion(document: any): DOC {
+    const stack = new Error().stack;
+    if (document.version) return document;
+    const docVersion = this.getVersion();
+    if (!docVersion) return document;
+    document.version = docVersion;
     return document;
   }
 

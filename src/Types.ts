@@ -27,6 +27,7 @@ export interface CollectionProps {
   size?: number;
   max?: number;
   indexes?: IndexDefinition[];
+  documentVersion?: number;
 }
 
 export interface IndexDefinition {

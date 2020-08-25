@@ -38,7 +38,14 @@ describe('MongoRepository', () => {
   describe('CRUD', () => {
     const COLLECTION_NAME = 'Foo';
 
-    interface User {
+    interface UserDTO {
+      name: string;
+      title?: string;
+    }
+
+    interface UserDocument {
+      id: string;
+      version: string;
       name: string;
       title?: string;
     }
@@ -46,7 +53,7 @@ describe('MongoRepository', () => {
     @Collection({
       name: COLLECTION_NAME
     })
-    class UserRepository extends MongoRepository<User> {
+    class UserRepository extends MongoRepository<UserDocument, UserDTO> {
       events: { pre: { [op in RepoOperation]: { args: [] }[] }; post: { [op in RepoOperation]: { args: [] }[] } } = {
         pre: Object.keys(RepoOperation).reduce((opMap, opName) => {
           opMap[opName] = [];
@@ -82,7 +89,7 @@ describe('MongoRepository', () => {
       }
     }
 
-    class UserRepositoryNoDecorator extends MongoRepository<User> {}
+    class UserRepositoryNoDecorator extends MongoRepository<UserDTO> {}
 
     it('should create a collection', async () => {
       const dbc = await getDb();
@@ -245,6 +252,142 @@ describe('MongoRepository', () => {
         expect(repo.events.pre.updateOne).to.be.lengthOf(1);
 
         dbc.close();
+      });
+    });
+
+    describe('ensureVersion()', () => {
+      describe('when the version is zero', () => {
+        describe('on create', () => {
+          it('should not add version to the document', async () => {
+            const dbc = await getDb();
+            const mockDb = await dbc.db;
+            const repo = new UserRepository(dbc);
+
+            const userObj = {
+              name: faker.name.firstName(),
+              title: faker.name.jobTitle()
+            };
+
+            const user = await repo.create(userObj);
+            expect(user).to.not.haveOwnProperty('version');
+            const collection = mockDb.collection(COLLECTION_NAME);
+            const foundUser = await collection.findOne({ name: userObj.name });
+            expect(foundUser).to.not.haveOwnProperty('version');
+          });
+        });
+        describe('on save', () => {
+          it('should not add version to the document', async () => {
+            const dbc = await getDb();
+            const mockDb = await dbc.db;
+            const repo = new UserRepository(dbc);
+
+            const userObj = {
+              name: faker.name.firstName(),
+              title: faker.name.jobTitle()
+            };
+
+            const createdUserObj = await repo.create(userObj);
+            const user = await repo.save(createdUserObj);
+            expect(user).to.not.haveOwnProperty('version');
+            const collection = mockDb.collection(COLLECTION_NAME);
+            const foundUser = await collection.findOne({ name: userObj.name });
+            expect(foundUser).to.not.haveOwnProperty('version');
+          });
+        });
+        describe('on upsert', () => {
+          it('should not add version to the document', async () => {
+            const dbc = await getDb();
+            const mockDb = await dbc.db;
+            const repo = new UserRepository(dbc);
+
+            const userObj = {
+              name: faker.name.firstName(),
+              title: faker.name.jobTitle()
+            };
+
+            const user = await repo.findOneAndUpdate({
+              conditions: { name: userObj.name },
+              updates: userObj,
+              upsert: true
+            });
+            expect(user).to.not.haveOwnProperty('version');
+            const collection = mockDb.collection(COLLECTION_NAME);
+            const foundUser = await collection.findOne({ name: userObj.name });
+            expect(foundUser).to.not.haveOwnProperty('version');
+          });
+        });
+      });
+      describe('when the version is non-zero', () => {
+        @Collection({
+          name: COLLECTION_NAME,
+          documentVersion: 1
+        })
+        class UserRepositoryWithVersion extends MongoRepository<UserDocument, UserDTO> {}
+        describe('on create', () => {
+          it('should add version to the document', async () => {
+            const dbc = await getDb();
+            const mockDb = await dbc.db;
+            const repo = new UserRepositoryWithVersion(dbc);
+
+            const userObj = {
+              name: faker.name.firstName(),
+              title: faker.name.jobTitle()
+            };
+
+            const user = await repo.create(userObj);
+            expect(user).to.haveOwnProperty('version');
+            expect(user.version).to.eq(1);
+            const collection = mockDb.collection(COLLECTION_NAME);
+            const foundUser = await collection.findOne({ name: userObj.name });
+            expect(foundUser).to.haveOwnProperty('version');
+            expect(foundUser.version).to.eq(1);
+          });
+        });
+        describe('on save', () => {
+          it('should not add version to the document', async () => {
+            const dbc = await getDb();
+            const mockDb = await dbc.db;
+            const repo = new UserRepositoryWithVersion(dbc);
+
+            const userObj = {
+              name: faker.name.firstName(),
+              title: faker.name.jobTitle()
+            };
+
+            const createdUserObj = await repo.create(userObj);
+            const user = await repo.save(createdUserObj);
+            expect(user).to.haveOwnProperty('version');
+            expect(user.version).to.eq(1);
+            const collection = mockDb.collection(COLLECTION_NAME);
+            const foundUser = await collection.findOne({ name: userObj.name });
+            expect(foundUser).to.haveOwnProperty('version');
+            expect(foundUser.version).to.eq(1);
+          });
+        });
+        describe('on upsert', () => {
+          it('should not add version to the document', async () => {
+            const dbc = await getDb();
+            const mockDb = await dbc.db;
+            const repo = new UserRepositoryWithVersion(dbc);
+
+            const userObj = {
+              name: faker.name.firstName(),
+              title: faker.name.jobTitle()
+            };
+
+            const user = await repo.findOneAndUpdate({
+              conditions: { name: userObj.name },
+              updates: userObj,
+              upsert: true
+            });
+            expect(user).to.haveOwnProperty('version');
+            expect(user.version).to.eq(1);
+            const collection = mockDb.collection(COLLECTION_NAME);
+            const foundUser = await collection.findOne({ name: userObj.name });
+            expect(foundUser).to.haveOwnProperty('version');
+            expect(foundUser.version).to.eq(1);
+          });
+        });
       });
     });
   });
