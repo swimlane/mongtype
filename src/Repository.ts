@@ -248,9 +248,11 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], conditions);
+    const document = await collection.findOne(conditions);
+
+    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], null, document);
     const deleteResult = await collection.deleteOne(conditions);
-    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], deleteResult);
+    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], null, document);
 
     return deleteResult;
   }
