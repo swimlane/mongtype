@@ -304,7 +304,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @param {RepoOperation[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
    * @param {*} newDocument The document to apply functions to
    * @param {*} oldDocument The original document before changes were applied
-   * @returns {Promise<DOC>}
+   * @returns {Promise<DOC>} DOC will be null for delete events
    * @memberof MongoRepository
    */
   protected async invokeEvents(
@@ -322,7 +322,7 @@ export class MongoRepository<DOC, DTO = DOC> {
           operationType: type
         };
         newDocument = event.bind(this)(newDocument, repoEventArgs);
-        if (typeof newDocument.then === 'function') {
+        if (newDocument && typeof newDocument.then === 'function') {
           newDocument = await newDocument;
         }
       }
