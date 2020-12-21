@@ -248,8 +248,8 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    const document = await collection.findOne(conditions);
-
+    let document = await collection.findOne(conditions);
+    document = this.toggleId(document, false);
     await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], null, document);
     const deleteResult = await collection.deleteOne(conditions);
     await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], null, document);
@@ -267,9 +267,19 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteMany(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], conditions);
+    const documents = (await collection.find(conditions).toArray()).map(document => {
+      return this.toggleId(document, false);
+    });
+
+    for (const document of documents) {
+      await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], null, document);
+    }
+
     const deleteResult = await collection.deleteMany(conditions);
-    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteMany], deleteResult);
+
+    for (const document of documents) {
+      await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteMany], null, document);
+    }
 
     return deleteResult;
   }
