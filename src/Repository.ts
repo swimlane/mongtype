@@ -50,7 +50,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Find multiple documents by a list of ids
    *
    * @param {string[]} ids
-   * @returns {Promise<T[]>}
+   * @returns {Promise<DOC[]>}
    * @memberof MongoRepository
    */
   async findManyById(ids: string[]): Promise<DOC[]> {
@@ -90,10 +90,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Find records by a list of conditions
    *
    * @param {FindRequest} [req={ conditions: {} }]
-   * @returns {Promise<T[]>}
+   * @returns {Promise<PROJECTION[]>}
    * @memberof MongoRepository
    */
-  async find(req: FindRequest = { conditions: {} }): Promise<DOC[]> {
+  async find<PROJECTION = DOC>(req: FindRequest = { conditions: {} }): Promise<PROJECTION[]> {
     const collection = await this.collection;
 
     const conditions = this.toggleId(req.conditions, true);
@@ -290,10 +290,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @private
    * @param {*} document
    * @param {boolean} replace
-   * @returns {T}
+   * @returns {any}
    * @memberof MongoRepository
    */
-  protected toggleId(document: any, replace: boolean): DOC {
+  protected toggleId(document: any, replace: boolean): any {
     if (document && (document.id || document._id)) {
       if (replace) {
         document._id = new ObjectID(document.id);
@@ -314,7 +314,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @param {RepoOperation[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
    * @param {*} newDocument The document to apply functions to
    * @param {*} oldDocument The original document before changes were applied
-   * @returns {Promise<DOC>} DOC will be null for delete events
+   * @returns {Promise<any>}
    * @memberof MongoRepository
    */
   protected async invokeEvents(
