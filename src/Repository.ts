@@ -250,9 +250,9 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     let document = await collection.findOne(conditions);
     document = this.toggleId(document, false);
-    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], null, document);
+    await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], undefined, document);
     const deleteResult = await collection.deleteOne(conditions);
-    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], null, document);
+    await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteOne], undefined, document);
 
     return deleteResult;
   }
@@ -272,13 +272,13 @@ export class MongoRepository<DOC, DTO = DOC> {
     });
 
     for (const document of documents) {
-      await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], null, document);
+      await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], undefined, document);
     }
 
     const deleteResult = await collection.deleteMany(conditions);
 
     for (const document of documents) {
-      await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteMany], null, document);
+      await this.invokeEvents(POST_KEY, [RepoOperation.delete, RepoOperation.deleteMany], undefined, document);
     }
 
     return deleteResult;

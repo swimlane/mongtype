@@ -48,8 +48,8 @@ describe('MongoRepository', () => {
     })
     class UserRepository extends MongoRepository<User> {
       events: {
-        pre: { [op in RepoOperation]: Array<{ args: [] }> };
-        post: { [op in RepoOperation]: Array<{ args: [] }> };
+        pre: { [op in RepoOperation]: { args: [] }[] };
+        post: { [op in RepoOperation]: { args: [] }[] };
       } = {
         pre: Object.keys(RepoOperation).reduce((opMap, opName) => {
           opMap[opName] = [];
