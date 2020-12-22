@@ -374,6 +374,9 @@ describe('MongoRepository', () => {
       @After('create', 'delete')
       async protec(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
         if (args.operation === RepoOperation.delete) {
+          if (!newDoc.firstName) {
+            throw new Error(`'that's not a dog!`);
+          }
           throw new Error(`you wouldn't delete a dog would you?`);
         }
         return newDoc;
@@ -486,8 +489,9 @@ describe('MongoRepository', () => {
       const repo = new DogRepository(dbc);
 
       const puppers = await repo.create({ firstName: 'spot', type: 'mutt' });
+      const pupper = await repo.findOne({});
       try {
-        const badDog = await repo.deleteOne(puppers);
+        const badDog = await repo.deleteOne({ firstName: 'spot' });
         throw new Error('We deleted spot!');
       } catch (err) {
         expect(err.message).to.equal(`you wouldn't delete a dog would you?`);

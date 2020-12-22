@@ -240,6 +240,7 @@ export class MongoRepository<DOC, DTO = DOC> {
 
   /**
    * Delete a record
+   * If passing an ID, it must be as _id
    *
    * @param {*} conditions
    * @returns {Promise<DeleteWriteOpResultObject>}
@@ -248,12 +249,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteOne(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    let document = await this.findOne(conditions);
+    conditions = await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], conditions);
 
-    if (document) {
-      document = this.toggleId(document, false);
-      await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteOne], document);
-    }
+    const document = await this.findOne(conditions);
 
     const deleteResult = await collection.deleteOne(conditions);
 
@@ -274,13 +272,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   async deleteMany(conditions: any): Promise<DeleteWriteOpResultObject> {
     const collection = await this.collection;
 
-    const documents = (await collection.find(conditions).toArray()).map(document => {
-      return this.toggleId(document, false);
-    });
+    conditions = await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], conditions);
 
-    for (const document of documents) {
-      await this.invokeEvents(PRE_KEY, [RepoOperation.delete, RepoOperation.deleteMany], document);
-    }
+    const documents = await this.find(conditions);
 
     const deleteResult = await collection.deleteMany(conditions);
 
@@ -296,7 +290,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    *
    * @private
    * @param {*} document
-   * @param {boolean} replace
+   * @param {boolean} replace - true: id -> _id; false: _id -> id
    * @returns {any}
    * @memberof MongoRepository
    */
