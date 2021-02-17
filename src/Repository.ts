@@ -1,5 +1,7 @@
 import { Collection, DeleteWriteOpResultObject, ObjectID } from 'mongodb';
 
+const clone = require('rfdc')({ proto: true });
+
 import {
   COLLECTION_KEY,
   CollectionProps,
@@ -11,7 +13,8 @@ import {
   UpdateByIdRequest,
   UpdateRequest,
   RepoEventArgs,
-  RepoOperation
+  RepoOperation,
+  EventOptions
 } from './Types';
 
 export class MongoRepository<DOC, DTO = DOC> {
@@ -25,6 +28,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   /**
    * Creates an instance of MongoRepository.
    * @param {DBSource} dbSource Your MongoDB connection
+   * @param opts Collection initialize options
    * @memberof MongoRepository
    */
   constructor(public dbSource: DBSource, opts?: CollectionProps) {
@@ -165,16 +169,16 @@ export class MongoRepository<DOC, DTO = DOC> {
     const res = await collection.updateOne(<object>query, { $set: updates }, { upsert: true });
     let newDocument = await collection.findOne(<object>query);
 
+    // flip flop ids back
+    this.toggleId(newDocument, false);
+
+    newDocument = await this.invokeEvents(POST_KEY, [RepoOperation.save], newDocument, originalDoc);
+
     // project new items
     if (newDocument) {
       Object.assign(document, newDocument);
     }
 
-    // flip flop ids back
-    newDocument['id'] = id.toString();
-    delete newDocument['_id'];
-
-    newDocument = await this.invokeEvents(POST_KEY, [RepoOperation.save], newDocument, originalDoc);
     return newDocument;
   }
 
@@ -301,7 +305,8 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @param {string} type any of the valid types, PRE_KEY POST_KEY
    * @param {RepoOperation[]} fns any of the valid functions: update, updateOne, save, create, find, findOne, findMany
    * @param {*} newDocument The document to apply functions to
-   * @param {*} oldDocument The original document before changes were applied
+   * @param originalDocument The original document before changes were applied
+   * @param opts Options for event
    * @returns {Promise<any>}
    * @memberof MongoRepository
    */
@@ -309,8 +314,19 @@ export class MongoRepository<DOC, DTO = DOC> {
     type: string,
     fns: RepoOperation[],
     newDocument: any,
-    originalDocument?: any
+    originalDocument?: any,
+    opts?: EventOptions
   ): Promise<any> {
+    // local options override global collection options
+    if (opts?.noClone === false || (opts?.noClone === undefined && this.options.eventOpts?.noClone !== true)) {
+      // Dereference (aka clone) the target document(s) to
+      // prevent down stream modifications in events on the original instance(s)
+      newDocument = clone(newDocument);
+      if (originalDocument) {
+        originalDocument = clone(originalDocument);
+      }
+    }
+
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
       for (const event of events) {

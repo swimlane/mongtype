@@ -60,7 +60,7 @@ describe('MongoRepository', () => {
           return opMap;
         }, {}) as any
       };
-      clearEvents() {
+      clearEvents(): void {
         this.events = {
           pre: Object.keys(RepoOperation).reduce((opMap, opName) => {
             opMap[opName] = [];
@@ -75,7 +75,7 @@ describe('MongoRepository', () => {
 
       @Before(...Object.keys(RepoOperation))
       @After(...Object.keys(RepoOperation))
-      captureEvent(...args: any[]) {
+      captureEvent(...args: any[]): any {
         const eventArgs: RepoEventArgs = args[args.length - 1];
         if (!this.events[eventArgs.operationType][eventArgs.operation]) {
           this.events[eventArgs.operationType][eventArgs.operation] = [];
@@ -208,7 +208,7 @@ describe('MongoRepository', () => {
       dbc.close();
     });
 
-    describe('findOneAndUpdate', function() {
+    describe('findOneAndUpdate', () => {
       it('should short circuit with no document found by id', async () => {
         const dbc = await getDb();
         const mockDb = await dbc.db;
