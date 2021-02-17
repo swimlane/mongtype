@@ -1,6 +1,6 @@
 import { Collection, DeleteWriteOpResultObject, ObjectID } from 'mongodb';
 
-const clone = require('rfdc')({proto: true});
+const clone = require('rfdc')({ proto: true });
 
 import {
   COLLECTION_KEY,
@@ -13,7 +13,8 @@ import {
   UpdateByIdRequest,
   UpdateRequest,
   RepoEventArgs,
-  RepoOperation, EventOptions
+  RepoOperation,
+  EventOptions
 } from './Types';
 
 export class MongoRepository<DOC, DTO = DOC> {
@@ -315,13 +316,12 @@ export class MongoRepository<DOC, DTO = DOC> {
     originalDocument?: any,
     opts?: EventOptions
   ): Promise<any> {
-
     // local options override global collection options
-    if(opts?.noClone === false || (opts?.noClone === undefined && this.options.eventOpts?.noClone !== true)) {
+    if (opts?.noClone === false || (opts?.noClone === undefined && this.options.eventOpts?.noClone !== true)) {
       // Dereference (aka clone) the target document(s) to
       // prevent down stream modifications in events on the original instance(s)
       newDocument = clone(newDocument);
-      if(originalDocument) {
+      if (originalDocument) {
         originalDocument = clone(originalDocument);
       }
     }
