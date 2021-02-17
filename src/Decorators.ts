@@ -7,8 +7,8 @@ import { COLLECTION_KEY, CollectionProps, POST_KEY, PRE_KEY } from './Types';
  * @param {CollectionProps} props
  * @returns
  */
-export function Collection(props: CollectionProps) {
-  return function(target: any) {
+export function Collection(props: CollectionProps): (target: any) => void {
+  return (target: any) => {
     Reflect.defineMetadata(COLLECTION_KEY, props, target.prototype);
   };
 }
@@ -30,8 +30,10 @@ export function Collection(props: CollectionProps) {
  * @param {...string[]} events a list of events
  * @returns
  */
-export function Before(...events: string[]) {
-  return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
+export function Before(
+  ...events: string[]
+): (target: any, name: string, descriptor: TypedPropertyDescriptor<any>) => void {
+  return (target: any, name: string, descriptor: TypedPropertyDescriptor<any>) => {
     for (const event of events) {
       const fns = Reflect.getMetadata(`${PRE_KEY}_${event}`, target) || [];
       // you must create new array so you don't push fn into siblings
@@ -59,8 +61,10 @@ export function Before(...events: string[]) {
  * @param {...string[]} events a list of events
  * @returns
  */
-export function After(...events: string[]) {
-  return function(target: any, name: string, descriptor: TypedPropertyDescriptor<any>) {
+export function After(
+  ...events: string[]
+): (target: any, name: string, descriptor: TypedPropertyDescriptor<any>) => void {
+  return (target: any, name: string, descriptor: TypedPropertyDescriptor<any>) => {
     for (const event of events) {
       const fns = Reflect.getMetadata(`${POST_KEY}_${event}`, target) || [];
       // you must create new array so you don't push fn into siblings

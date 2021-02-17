@@ -1,3 +1,6 @@
 {
-  "extends": "tslint-config-swimlane/base"
+  "extends": "tslint-config-swimlane/base",
+  "rules": {
+    "no-any": false
+  }
 }

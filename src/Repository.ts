@@ -28,6 +28,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   /**
    * Creates an instance of MongoRepository.
    * @param {DBSource} dbSource Your MongoDB connection
+   * @param opts Collection initialize options
    * @memberof MongoRepository
    */
   constructor(public dbSource: DBSource, opts?: CollectionProps) {
