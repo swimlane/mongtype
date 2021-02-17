@@ -21,12 +21,20 @@ export interface FindRequest {
   skip?: number;
 }
 
+export interface EventOptions {
+  /**
+   * Override cloning of event target reference(s)
+   */
+  noClone?: boolean;
+}
+
 export interface CollectionProps {
   name: string;
   capped?: boolean;
   size?: number;
   max?: number;
   indexes?: IndexDefinition[];
+  eventOpts?: EventOptions;
 }
 
 export interface IndexDefinition {
