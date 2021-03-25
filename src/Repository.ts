@@ -43,10 +43,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Finds a record by id
    *
    * @param {string} id
-   * @returns {Promise<DOC | undefined>}
+   * @returns {Promise<DOC | null>}
    * @memberof MongoRepository
    */
-  findById(id: string): Promise<DOC | undefined> {
+  findById(id: string): Promise<DOC | null> {
     return this.findOne({ _id: new ObjectID(id) });
   }
 
@@ -76,18 +76,19 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Finds a record by a list of conditions
    *
    * @param {object} conditions
-   * @returns {Promise<DOC | undefined>}
+   * @returns {Promise<DOC | null>}
    * @memberof MongoRepository
    */
-  async findOne(conditions: object): Promise<DOC | undefined> {
+  async findOne(conditions: object): Promise<DOC | null> {
     const collection = await this.collection;
 
     let document = await collection.findOne(conditions);
     if (document) {
       document = this.toggleId(document, false);
       document = await this.invokeEvents(POST_KEY, [RepoOperation.find, RepoOperation.findOne], document);
-      return document;
     }
+
+    return document;
   }
 
   /**
@@ -187,10 +188,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    *
    * @param {string} id
    * @param {UpdateByIdRequest} req
-   * @returns {Promise<DOC | undefined>}
+   * @returns {Promise<DOC | null>}
    * @memberof MongoRepository
    */
-  async findOneByIdAndUpdate(id: string, req: UpdateByIdRequest): Promise<DOC | undefined> {
+  async findOneByIdAndUpdate(id: string, req: UpdateByIdRequest): Promise<DOC | null> {
     return this.findOneAndUpdate({
       conditions: { _id: new ObjectID(id) },
       updates: req.updates,
@@ -202,10 +203,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Find a record and update with new values
    *
    * @param {UpdateRequest} req
-   * @returns {Promise<DOC | undefined>}
+   * @returns {Promise<DOC | null>}
    * @memberof MongoRepository
    */
-  async findOneAndUpdate(req: UpdateRequest): Promise<DOC | undefined> {
+  async findOneAndUpdate(req: UpdateRequest): Promise<DOC | null> {
     const collection = await this.collection;
     const updates = await this.invokeEvents(PRE_KEY, [RepoOperation.update, RepoOperation.updateOne], req.updates);
 
