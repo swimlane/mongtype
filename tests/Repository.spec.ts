@@ -220,7 +220,7 @@ describe('MongoRepository', () => {
           updates: { $set: { title: 'Unicorn Tamer' } }
         });
 
-        expect(noUser).to.be.undefined;
+        expect(noUser).to.be.null;
         expect(repo.events.post.update).to.be.empty;
         expect(repo.events.post.updateOne).to.be.empty;
         expect(repo.events.pre.update).to.be.lengthOf(1);
@@ -241,7 +241,7 @@ describe('MongoRepository', () => {
           updates: { $set: { title: 'Unicorn Tamer' } }
         });
 
-        expect(noUser).to.be.undefined;
+        expect(noUser).to.be.null;
         expect(repo.events.post.update).to.be.empty;
         expect(repo.events.post.updateOne).to.be.empty;
         expect(repo.events.pre.update).to.be.lengthOf(1);
