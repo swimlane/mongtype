@@ -38,15 +38,15 @@
     "@swimlane/prettier-config-swimlane": "^3.0.3",
     "@types/chai": "^4.2.9",
     "@types/faker": "^4.1.9",
-    "@types/mocha": "^7.0.1",
-    "@types/mongodb": "^3.6.7",
+    "@types/mocha": "^8.2.2",
+    "@types/mongodb": "3.6.12",
     "@types/node": "^12.12.27",
     "@types/retry": "^0.12.0",
     "chai": "^4.2.0",
     "clone": "^2.1.2",
     "codacy-coverage": "^3.2.0",
     "faker": "^4.1.0",
-    "mocha": "^7.0.1",
+    "mocha": "^8.3.2",
     "mongo-mock": "^4.0.0",
     "nyc": "^15.0.0",
     "prettier": "~2.2.1",
@@ -59,7 +59,7 @@
     "typescript": "^4.1.5"
   },
   "dependencies": {
-    "mongodb": "^3.6.4",
+    "mongodb": "3.6.6",
     "retry": "^0.12.0",
     "rfdc": "^1.2.0"
   },
