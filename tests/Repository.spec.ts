@@ -4,7 +4,7 @@ import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
 import * as faker from 'faker';
-import { ObjectId } from 'mongodb';
+import { ObjectID, ObjectId } from 'mongodb';
 import * as clone from 'clone';
 
 describe('MongoRepository', () => {
@@ -38,15 +38,19 @@ describe('MongoRepository', () => {
   describe('CRUD', () => {
     const COLLECTION_NAME = 'Foo';
 
-    interface User {
+    interface UserDTO {
       name: string;
       title?: string;
+    }
+
+    interface UserDocument extends UserDTO {
+      id: string | ObjectID;
     }
 
     @Collection({
       name: COLLECTION_NAME
     })
-    class UserRepository extends MongoRepository<User> {
+    class UserRepository extends MongoRepository<UserDocument, UserDTO> {
       events: {
         pre: { [op in RepoOperation]: { args: [] }[] };
         post: { [op in RepoOperation]: { args: [] }[] };
@@ -85,7 +89,7 @@ describe('MongoRepository', () => {
       }
     }
 
-    class UserRepositoryNoDecorator extends MongoRepository<User> {}
+    class UserRepositoryNoDecorator extends MongoRepository<UserDocument, UserDTO> {}
 
     it('should create a collection', async () => {
       const dbc = await getDb();
@@ -255,16 +259,20 @@ describe('MongoRepository', () => {
   describe('Finding', () => {
     const COLLECTION_NAME = 'People';
 
-    interface Person {
+    interface PersonDTO {
       firstName: string;
       lastName: string;
       title: string;
     }
 
+    interface PersonDocument extends PersonDTO {
+      id: string | ObjectID;
+    }
+
     @Collection({
       name: COLLECTION_NAME
     })
-    class PeopleRepository extends MongoRepository<Person> {}
+    class PeopleRepository extends MongoRepository<PersonDocument, PersonDTO> {}
 
     async function populateDb(db: any): Promise<any[]> {
       const collection = db.collection(COLLECTION_NAME);
@@ -329,24 +337,28 @@ describe('MongoRepository', () => {
   describe('Before/After', () => {
     const COLLECTION_NAME = 'Dogs';
 
-    interface Dog {
+    interface DogDTO {
       firstName: string;
       type: string;
       good?: boolean;
     }
 
+    interface DogDocument extends DogDTO {
+      id: string | ObjectID;
+    }
+
     @Collection({
       name: COLLECTION_NAME
     })
-    class DogRepository extends MongoRepository<Dog> {
+    class DogRepository extends MongoRepository<DogDocument, DogDTO> {
       @Before('create')
-      async goodBoy(doc: Dog): Promise<Dog> {
+      async goodBoy(doc: DogDocument): Promise<DogDocument> {
         doc.good = true;
         return doc;
       }
 
       @Before('save')
-      async onlyGoodBoys(doc: Dog): Promise<Dog> {
+      async onlyGoodBoys(doc: DogDocument): Promise<DogDocument> {
         if ('good' in doc && !doc.good) {
           throw new Error('All dogs are good!');
         }
@@ -354,13 +366,13 @@ describe('MongoRepository', () => {
       }
 
       @After('find')
-      async shout(doc: Dog): Promise<Dog> {
+      async shout(doc: DogDocument): Promise<DogDocument> {
         doc.firstName = doc.firstName.toUpperCase();
         return doc;
       }
 
       @After('save', 'update')
-      async convert(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
+      async convert(newDoc: DogDocument, args: RepoEventArgs): Promise<DogDocument> {
         if (
           args.originalDocument &&
           args.originalDocument.firstName === 'FIDO' &&
@@ -372,7 +384,7 @@ describe('MongoRepository', () => {
       }
 
       @After('create', 'delete')
-      async protec(newDoc: Dog, args: RepoEventArgs): Promise<Dog> {
+      async protect(newDoc: DogDocument, args: RepoEventArgs): Promise<DogDocument> {
         if (args.operation === RepoOperation.delete) {
           throw new Error(`you wouldn't delete a dog would you?`);
         }

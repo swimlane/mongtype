@@ -49,7 +49,7 @@ export interface IndexDefinition {
 }
 
 export interface Document {
-  id?: string | ObjectID;
+  id: string | ObjectID;
   [key: string]: any;
 }
 
