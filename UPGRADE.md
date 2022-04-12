@@ -9,6 +9,8 @@ The `MongoRepository` class now requires two type parameters.
 
 `DTO` SHOULD not have an `id` member because the document may not yet exist in Mongo. `DOC` MUST be a superset of `DTO` and MUST include an `id` member of type `string | ObjectId`.
 
+See [Repository tests](./tests/Repository.spec.ts) for examples.
+
 ## 3.x to 4.x Upgrade Guide
 
 Update to Database Client to allow users to provide `MongoClientOptions` to `DatabaseClient.connect()`. This changes the argument order so it's not backwards compatible with Mongtype 3.x
