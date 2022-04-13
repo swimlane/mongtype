@@ -1,6 +1,6 @@
 # Upgrade Guide
 
-## 4.x to 5.x Upgrade Guide
+## 7.x Upgrade Guide
 
 The `MongoRepository` class now requires two type parameters.
 
