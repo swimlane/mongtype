@@ -17,16 +17,17 @@ import {
   EventOptions
 } from './Types';
 
-export class MongoRepository<DOC, DTO = DOC> {
+export class MongoRepository<DOC extends DTO & Document, DTO extends object> {
   collection: Promise<Collection<DOC>>;
   readonly options: CollectionProps;
 
-  // get options(): CollectionProps {
-  //   return Reflect.getMetadata(COLLECTION_KEY, this);
-  // }
-
   /**
    * Creates an instance of MongoRepository.
+   *
+   * The first type parameter DOC is short for "Document" and represents the shape of a document as stored in Mongo,
+   * including an `id` member. The second type param DTO stands for "DTO" and represents the shape of a document during
+   * transfer to/from Mongo. DTO should not have an `id` member because the document may not yet exist in Mongo.
+   *
    * @param {DBSource} dbSource Your MongoDB connection
    * @param opts Collection initialize options
    * @memberof MongoRepository
@@ -133,9 +134,9 @@ export class MongoRepository<DOC, DTO = DOC> {
   }
 
   /**
-   * Create a document of type T
+   * Create a document
    *
-   * @param {DTO} document
+   * @param {DTO} document A document transfer object
    * @returns {Promise<DOC>}
    * @memberof MongoRepository
    */

@@ -14,8 +14,12 @@ MongoDB Repository pattern for NodeJS written in TypeScript.
 
 ## Usage
 
-[Migrating from 2.X to 3.X](UPGRADE.md)
-[Migrating from 1.X to 2.X](UPGRADE.md)
+### Upgrade Guide
+
+- [Migrating from 4.X to 5.X](UPGRADE.md)
+- [Migrating from 3.X to 4.X](UPGRADE.md)
+- [Migrating from 2.X to 3.X](UPGRADE.md)
+- [Migrating from 1.X to 2.X](UPGRADE.md)
 
 ### DatabaseClient
 
@@ -37,38 +41,46 @@ dbc.connect(uri, mongoClient);
 
 ### Using DI
 
-```javascript
-import { MongoRepository, Collection, Pre, Post } from 'mongtype';
-import { Injectable } from 'injection-js';
+```typescript
+import {MongoRepository, Collection, Pre, Post} from 'mongtype';
+import {Injectable} from 'injection-js';
+import {ObjectID} from "mongodb";
 
-interface User {
-  name: string;
+interface UserDTO {
+    name: string;
+}
+
+interface UserDocument extends UserDTO {
+    id: string | ObjectID;
 }
 
 @Injectable()
 @Collection({
-  name: 'user',
-  capped: true,
-  size: 10000
+    name: 'user',
+    capped: true,
+    size: 10000
 })
-export class UserRepository extends MongoRepository<User> {
-  @Before('save')
-  doSomethingBeforeSave() {}
+export class UserRepository extends MongoRepository<UserDocument, UserDTO> {
+    @After('create')
+    doSomethingAfterCreate() {
+    }
 
-  @After('save')
-  doSomethingAfterSave() { }
+    @Before('save')
+    doSomethingBeforeSave() {
+    }
 }
 
 @Injectable()
 export class App {
-  constructor(private userRepo: UserRepository) { }
+    constructor(private userRepo: UserRepository) {
+    }
 
-  async findUsers() {
-    const one = await this.userRepo.findById('3434-34-34343-3434');
-    const many = await this.userRepo.find({ conditions: { name: 'foo' } });
-    const newOne = await this.userRepo.create({ foo: true });
-    const updated = await this.userRepo.save(newOne);
-  }
+    async findUsers() {
+        const one = await this.userRepo.findById('3434-34-34343-3434');
+        const many = await this.userRepo.find({conditions: {name: 'foo'}});
+        const newOne = await this.userRepo.create({foo: true});
+        const updated = await this.userRepo.save(newOne);
+    }
 }
 ```
 
