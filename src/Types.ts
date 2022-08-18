@@ -1,4 +1,4 @@
-import { Db, ObjectID, MongoClient, IndexOptions } from 'mongodb';
+import { Db, ObjectId, MongoClient, CreateIndexesOptions } from 'mongodb';
 
 export const COLLECTION_KEY = 'collection';
 export const PRE_KEY = 'pre';
@@ -42,14 +42,14 @@ export interface IndexDefinition {
   fields: { [fieldName: string]: string | any };
 
   // index options
-  options?: IndexOptions;
+  options?: CreateIndexesOptions;
 
   // overwrite the index if it exists and isn't the same
   overwrite?: boolean;
 }
 
 export interface Document {
-  id?: string | ObjectID;
+  id?: string | ObjectId;
   [key: string]: any;
 }
 

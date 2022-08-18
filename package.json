@@ -39,7 +39,7 @@
     "@types/chai": "^4.2.9",
     "@types/faker": "^4.1.9",
     "@types/mocha": "^9.0.0",
-    "@types/mongodb": "3.6.12",
+    "@types/mongodb": "4.0.7",
     "@types/node": "^12.12.27",
     "@types/retry": "^0.12.0",
     "chai": "^4.2.0",
@@ -59,7 +59,8 @@
     "typescript": "^4.1.5"
   },
   "dependencies": {
-    "mongodb": "3.6.6",
+    "lodash": "^4.17.21",
+    "mongodb": "4.8.1",
     "retry": "^0.12.0",
     "rfdc": "^1.2.0"
   },
