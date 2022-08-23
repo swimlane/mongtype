@@ -129,7 +129,7 @@ describe('MongoRepository', () => {
 
       const repo = new UserRepository(dbc);
       const foundRecord = await repo.findOne({ name: user.name });
-      expect(foundRecord.name).to.deep.equal(record.ops[0].name);
+      expect(foundRecord.name).to.deep.equal(user.name);
       dbc.close();
     });
 
@@ -158,7 +158,7 @@ describe('MongoRepository', () => {
       // Find one by id and update
       // reuse foundUser from above
       userObj.name = faker.name.firstName();
-      const updatedUserName = await repo.findOneByIdAndUpdate(foundUser._id, {
+      const updatedUserName = await repo.findOneByIdAndUpdate(foundUser?._id?.toString(), {
         updates: {
           $set: {
             name: userObj.name
@@ -182,13 +182,13 @@ describe('MongoRepository', () => {
       expect(updatedUserTitle.title).to.equal(userObj.title);
 
       // Delete One by Id
-      const deleteOneById = await repo.deleteOneById(foundUser._id);
-      expect(deleteOneById.result.n).to.equal(1);
+      const deleteOneById = await repo.deleteOneById(foundUser?._id?.toString());
+      expect(deleteOneById.deletedCount).to.equal(1);
 
       // Delete One
       await repo.create(userObj); // put user back in
       const deleteOne = await repo.deleteOne({ name: userObj.name });
-      expect(deleteOne.result.n).to.equal(1);
+      expect(deleteOne.deletedCount).to.equal(1);
       dbc.close();
     });
 
@@ -204,7 +204,7 @@ describe('MongoRepository', () => {
       }
 
       const delRes = await repo.deleteMany({ title });
-      expect(delRes.result.n).to.equal(10);
+      expect(delRes.deletedCount).to.equal(10);
       dbc.close();
     });
 

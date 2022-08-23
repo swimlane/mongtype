@@ -289,15 +289,23 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   protected toggleId(document: any, replace: boolean): any {
     if (document && (document.id || document._id)) {
-      if (replace) {
-        document._id = new ObjectId(document.id);
-        delete document.id;
-      } else {
-        document.id = document.id ? document.id.toString() : document._id.toString();
-        delete document._id;
-      }
+      this.setId(document, replace);
     }
     return document;
+  }
+
+  protected setId(document: any, replace: boolean) {
+    switch (replace) {
+      case true:
+        document._id = new ObjectId(document.id);
+        delete document.id;
+        break;
+
+      default:
+        document.id = document.id ? document.id.toString() : document._id.toString();
+        delete document._id;
+        break;
+    }
   }
 
   /**
@@ -323,28 +331,39 @@ export class MongoRepository<DOC, DTO = DOC> {
     if (opts?.noClone === false || (opts?.noClone === undefined && this.options.eventOpts?.noClone !== true)) {
       // Dereference (aka clone) the target document(s) to
       // prevent down stream modifications in events on the original instance(s)
-      newDocument = _.cloneDeep(newDocument);
-      if (originalDocument) {
-        originalDocument = _.cloneDeep(originalDocument);
-      }
+      this.cloneDocuments(newDocument, originalDocument);
     }
 
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
-      for (const event of events) {
-        const repoEventArgs: RepoEventArgs = {
-          originalDocument,
-          operation: fn,
-          operationType: type
-        };
-        newDocument = event.bind(this)(newDocument, repoEventArgs);
-        if (typeof newDocument.then === 'function') {
-          newDocument = await newDocument;
-        }
-      }
+      await this.bindEvents(events, fn, type, originalDocument, newDocument);
     }
 
     return newDocument;
+  }
+
+  protected cloneDocuments(newDocument, originalDocument) {
+    newDocument = _.cloneDeep(newDocument);
+    if (originalDocument) {
+      originalDocument = _.cloneDeep(originalDocument);
+    }
+  }
+
+  protected async bindEvents(events, fn, type, originalDocument, newDocument) {
+    const event = events.shift();
+    const repoEventArgs: RepoEventArgs = {
+      originalDocument,
+      operation: fn,
+      operationType: type
+    };
+    newDocument = event.bind(this)(newDocument, repoEventArgs);
+    if (typeof newDocument.then === 'function') {
+      newDocument = await newDocument;
+    }
+    if (events.length > 0) {
+      return this.bindEvents(events, fn, type, originalDocument, newDocument);
+    }
+    return;
   }
 
   /**
@@ -359,19 +378,17 @@ export class MongoRepository<DOC, DTO = DOC> {
     return new Promise<Collection<DOC>>(async (resolve, reject) => {
       const db = await this.dbSource.db;
       let ourCollection;
-      try {
-        ourCollection = db.collection(this.options.name);
-        if (this.options.indexes) {
-          return this.indexDefinition(ourCollection, this.options.indexes, resolve, reject);
-        }
-      } catch (err) {
-        return this.createCollection(db, ourCollection, err, resolve, reject);
+      const exist = (await db.listCollections({ name: this.options.name }).toArray())[0];
+      if (!exist) {
+        return await this.createCollection(db, ourCollection);
       }
+      ourCollection = db.collection(this.options.name);
+      this.indexDefinition(ourCollection, this.options.indexes);
       resolve(ourCollection);
     });
   }
 
-  private async createCollection(db, ourCollection, err, resolve, reject) {
+  private async createCollection(db, ourCollection) {
     try {
       ourCollection = await db.createCollection(this.options.name, {
         size: this.options.size,
@@ -380,41 +397,40 @@ export class MongoRepository<DOC, DTO = DOC> {
       });
     } catch (createErr) {
       if (createErr.codeName === 'NamespaceExists') {
-        ourCollection = db.collection(this.options.name);
-        this.indexDefinition(ourCollection, this.options.indexes, resolve, reject);
+        return this.getCollection();
       }
-      reject(err);
+      throw createErr;
     }
   }
 
-  private async indexDefinition(ourCollection, indexesOptions: IndexDefinition[], resolve, reject) {
-    const indexDefinition = indexesOptions.shift();
+  private async indexDefinition(ourCollection, indexesOptions: IndexDefinition[]) {
+    let indexDefinition;
     try {
-      await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
-      if (indexesOptions.length > 0) {
-        return this.indexDefinition(ourCollection, indexesOptions, resolve, reject);
+      if (indexesOptions?.length > 0) {
+        indexDefinition = indexesOptions.shift();
+        await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
+        return this.indexDefinition(ourCollection, indexesOptions);
       }
-      resolve(ourCollection);
+      return;
     } catch (indexErr) {
-      this.reTryIndexCreation(indexDefinition, ourCollection, indexesOptions, indexErr, resolve, reject);
+      this.reTryIndexCreation(indexDefinition, ourCollection, indexesOptions, indexErr);
     }
   }
 
-  private async reTryIndexCreation(indexDefinition, ourCollection, indexesOptions, indexErr, resolve, reject) {
+  private async reTryIndexCreation(indexDefinition, ourCollection, indexesOptions, indexErr) {
     if (
-      indexDefinition.overwrite &&
-      indexDefinition.options.name &&
-      indexErr.name === 'MongoError' &&
-      (indexErr.codeName === 'IndexKeySpecsConflict' || indexErr.codeName === 'IndexOptionsConflict')
+      indexDefinition?.overwrite &&
+      indexDefinition?.options?.name &&
+      indexErr?.name === 'MongoError' &&
+      (indexErr?.codeName === 'IndexKeySpecsConflict' || indexErr?.codeName === 'IndexOptionsConflict')
     ) {
       try {
         await ourCollection.dropIndex(indexDefinition.options.name);
-        await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
-        return this.indexDefinition(ourCollection, indexesOptions, resolve, reject);
+        return await this.indexDefinition(ourCollection, indexesOptions);
       } catch (recreateErr) {
-        reject(recreateErr);
+        throw recreateErr;
       }
     }
-    reject(indexErr);
+    throw indexErr;
   }
 }

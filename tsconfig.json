@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    "target": "ES6",
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
@@ -10,18 +10,11 @@
     "sourceMap": true,
     "pretty": true,
     "outDir": "dist",
-    "types": [
-      "node",
-      "mocha",
-      "reflect-metadata"
-    ]
+    "types": ["node", "mocha", "reflect-metadata"]
   },
-  "include": [
-    "src/index.ts"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
+  "include": ["src/index.ts"],
+  "exclude": ["node_modules"],
   "compileOnSave": false,
-  "buildOnSave": false
+  "buildOnSave": false,
+  "files": ["tests/Repository.spec.ts"]
 }
