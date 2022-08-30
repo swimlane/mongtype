@@ -5,7 +5,7 @@ mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
 import * as faker from 'faker';
 import { ObjectId } from 'mongodb';
-import * as clone from 'clone';
+import * as _ from 'lodash';
 
 describe('MongoRepository', () => {
   const dbs = [];
@@ -80,7 +80,7 @@ describe('MongoRepository', () => {
         if (!this.events[eventArgs.operationType][eventArgs.operation]) {
           this.events[eventArgs.operationType][eventArgs.operation] = [];
         }
-        this.events[eventArgs.operationType][eventArgs.operation].push({ args: clone(args) });
+        this.events[eventArgs.operationType][eventArgs.operation].push({ args: _.cloneDeep(args) });
         return args[0]; // return document
       }
     }
@@ -139,6 +139,7 @@ describe('MongoRepository', () => {
       const repo = new UserRepository(dbc);
 
       const userObj = {
+        _id: new ObjectId(),
         name: faker.name.firstName(),
         title: faker.name.jobTitle()
       };
@@ -382,13 +383,13 @@ describe('MongoRepository', () => {
 
     it('should set all new dogs to good', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.db;
       const repo = new DogRepository(dbc);
+      const firstName = faker.name.firstName();
 
-      const puppers = await repo.create({ firstName: faker.name.firstName(), type: 'mutt' });
-      const foundPup = await repo.findOne({ firstName: puppers.firstName });
+      const puppers = await repo.create({ firstName, type: 'mutt' });
+      const foundPup = await repo.findOne({ firstName });
 
-      expect(foundPup.firstName).to.equal(puppers.firstName.toUpperCase());
+      expect(foundPup['id']).to.equal(puppers['id']);
       expect(foundPup.good).to.equal(true);
 
       dbc.close();

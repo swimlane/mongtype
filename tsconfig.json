@@ -15,6 +15,5 @@
   "include": ["src/index.ts"],
   "exclude": ["node_modules"],
   "compileOnSave": false,
-  "buildOnSave": false,
-  "files": ["tests/Repository.spec.ts"]
+  "buildOnSave": false
 }

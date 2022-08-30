@@ -336,9 +336,8 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
-      await this.bindEvents(events, fn, type, originalDocument, newDocument);
+      await this.bindEvents(_.cloneDeep(events), fn, type, originalDocument, newDocument);
     }
-
     return newDocument;
   }
 
@@ -350,7 +349,8 @@ export class MongoRepository<DOC, DTO = DOC> {
   }
 
   protected async bindEvents(events, fn, type, originalDocument, newDocument) {
-    const event = events.shift();
+    if (events.length === 0) return;
+    const event = events.pop();
     const repoEventArgs: RepoEventArgs = {
       originalDocument,
       operation: fn,
@@ -361,9 +361,8 @@ export class MongoRepository<DOC, DTO = DOC> {
       newDocument = await newDocument;
     }
     if (events.length > 0) {
-      return this.bindEvents(events, fn, type, originalDocument, newDocument);
+      return await this.bindEvents(events, fn, type, originalDocument, newDocument);
     }
-    return;
   }
 
   /**
@@ -380,7 +379,7 @@ export class MongoRepository<DOC, DTO = DOC> {
       let ourCollection;
       const exist = (await db.listCollections({ name: this.options.name }).toArray())[0];
       if (!exist) {
-        return await this.createCollection(db, ourCollection);
+        ourCollection = await this.createCollection(db);
       }
       ourCollection = db.collection(this.options.name);
       this.indexDefinition(ourCollection, this.options.indexes);
@@ -388,9 +387,9 @@ export class MongoRepository<DOC, DTO = DOC> {
     });
   }
 
-  private async createCollection(db, ourCollection) {
+  private async createCollection(db) {
     try {
-      ourCollection = await db.createCollection(this.options.name, {
+      return await db.createCollection(this.options.name, {
         size: this.options.size,
         capped: this.options.capped,
         max: this.options.max
