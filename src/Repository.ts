@@ -1,4 +1,4 @@
-import { Collection, DeleteResult, ObjectId, WithId } from 'mongodb';
+import { Collection, Db, DeleteResult, ObjectId, WithId } from 'mongodb';
 
 import * as _ from 'lodash';
 
@@ -294,7 +294,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     return document;
   }
 
-  protected setId(document: any, replace: boolean) {
+  protected setId(document: any, replace: boolean): void {
     switch (replace) {
       case true:
         document._id = new ObjectId(document.id);
@@ -341,14 +341,20 @@ export class MongoRepository<DOC, DTO = DOC> {
     return newDocument;
   }
 
-  protected cloneDocuments(newDocument, originalDocument) {
+  protected cloneDocuments(newDocument: any, originalDocument: any): void {
     newDocument = _.cloneDeep(newDocument);
     if (originalDocument) {
       originalDocument = _.cloneDeep(originalDocument);
     }
   }
 
-  protected async bindEvents(events, fn, type, originalDocument, newDocument) {
+  protected async bindEvents(
+    events: any,
+    fn: RepoOperation,
+    type: string,
+    originalDocument: any,
+    newDocument: any
+  ): Promise<void> {
     if (events.length === 0) return;
     const event = events.pop();
     const repoEventArgs: RepoEventArgs = {
@@ -361,7 +367,7 @@ export class MongoRepository<DOC, DTO = DOC> {
       newDocument = await newDocument;
     }
     if (events.length > 0) {
-      return await this.bindEvents(events, fn, type, originalDocument, newDocument);
+      return this.bindEvents(events, fn, type, originalDocument, newDocument);
     }
   }
 
@@ -387,7 +393,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     });
   }
 
-  private async createCollection(db) {
+  private async createCollection(db: Db): Promise<Collection<DOC> | Collection<Document>> {
     try {
       return await db.createCollection(this.options.name, {
         size: this.options.size,
@@ -402,7 +408,7 @@ export class MongoRepository<DOC, DTO = DOC> {
     }
   }
 
-  private async indexDefinition(ourCollection, indexesOptions: IndexDefinition[]) {
+  private async indexDefinition(ourCollection: Collection<Document>, indexesOptions: IndexDefinition[]): Promise<void> {
     let indexDefinition;
     try {
       if (indexesOptions?.length > 0) {
@@ -416,7 +422,12 @@ export class MongoRepository<DOC, DTO = DOC> {
     }
   }
 
-  private async reTryIndexCreation(indexDefinition, ourCollection, indexesOptions, indexErr) {
+  private async reTryIndexCreation(
+    indexDefinition: IndexDefinition,
+    ourCollection: Collection<Document>,
+    indexesOptions: IndexDefinition[],
+    indexErr: any
+  ): Promise<void> {
     if (
       indexDefinition?.overwrite &&
       indexDefinition?.options?.name &&
