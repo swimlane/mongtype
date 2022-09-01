@@ -44,7 +44,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Finds a record by id
    *
    * @param {string} id
-   * @returns {Promise<DOC | null>}
+   * @returns {Promise<WithId<DOC> | null>}
    * @memberof MongoRepository
    */
   findById(id: string): Promise<WithId<DOC> | null> {
@@ -77,7 +77,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Finds a record by a list of conditions
    *
    * @param {object} conditions
-   * @returns {Promise<DOC | null>}
+   * @returns {Promise<WithId<DOC> | null>}
    * @memberof MongoRepository
    */
   async findOne(conditions: object): Promise<WithId<DOC> | null> {
@@ -154,7 +154,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Save any changes to your document
    *
    * @param {Document} document
-   * @returns {Promise<DOC>}
+   * @returns {Promise<WithId<DOC>>}
    * @memberof MongoRepository
    */
   async save(document: Document): Promise<WithId<DOC>> {
@@ -189,7 +189,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    *
    * @param {string} id
    * @param {UpdateByIdRequest} req
-   * @returns {Promise<DOC | null>}
+   * @returns {Promise<WithId<DOC> | null>}
    * @memberof MongoRepository
    */
   async findOneByIdAndUpdate(id: string, req: UpdateByIdRequest): Promise<WithId<DOC> | null> {
@@ -204,7 +204,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Find a record and update with new values
    *
    * @param {UpdateRequest} req
-   * @returns {Promise<DOC | null>}
+   * @returns {Promise<WithId<DOC> | null>}
    * @memberof MongoRepository
    */
   async findOneAndUpdate(req: UpdateRequest): Promise<WithId<DOC> | null> {
@@ -237,7 +237,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Delete a record by ID
    *
    * @param {string} id
-   * @returns {Promise<DeleteWriteOpResultObject>}
+   * @returns {Promise<DeleteResult>}
    * @memberof MongoRepository
    */
   async deleteOneById(id: string): Promise<DeleteResult> {
@@ -248,7 +248,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Delete a record
    *
    * @param {*} conditions
-   * @returns {Promise<DeleteWriteOpResultObject>}
+   * @returns {Promise<DeleteResult>}
    * @memberof MongoRepository
    */
   async deleteOne(conditions: any): Promise<DeleteResult> {
@@ -265,7 +265,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * Delete multiple records
    *
    * @param {*} conditions
-   * @returns {Promise<any>}
+   * @returns {Promise<DeleteResult>}
    * @memberof MongoRepository
    */
   async deleteMany(conditions: any): Promise<DeleteResult> {
@@ -294,6 +294,15 @@ export class MongoRepository<DOC, DTO = DOC> {
     return document;
   }
 
+  /**
+   * Set the document ID
+   *
+   * @private
+   * @param {*} document
+   * @param {boolean} replace
+   * @returns {void}
+   * @memberof MongoRepository
+   */
   protected setId(document: any, replace: boolean): void {
     switch (replace) {
       case true:
@@ -341,6 +350,15 @@ export class MongoRepository<DOC, DTO = DOC> {
     return newDocument;
   }
 
+  /**
+   * Clone Documents
+   *
+   * @private
+   * @param {*} newDocument The document to apply functions to
+   * @param originalDocument The original document before changes were applied
+   * @returns {Promise<void>}
+   * @memberof MongoRepository
+   */
   protected cloneDocuments(newDocument: any, originalDocument: any): void {
     newDocument = _.cloneDeep(newDocument);
     if (originalDocument) {
@@ -348,26 +366,35 @@ export class MongoRepository<DOC, DTO = DOC> {
     }
   }
 
-  protected async bindEvents(
+  /**
+   * Bind an Event with its options
+   *
+   * @private
+   * @param events list of event which should be binded
+   * @param fn a function can be: update, updateOne, save, create, find, findOne, findMany
+   * @type {string} type any of the valid types, PRE_KEY POST_KEY
+   * @param {*} newDocument The document to apply functions to
+   * @param originalDocument The original document before changes were applied
+   * @returns {Promise<void>}
+   * @memberof MongoRepository
+   */
+  private async bindEvents(
     events: any,
     fn: RepoOperation,
     type: string,
     originalDocument: any,
     newDocument: any
   ): Promise<void> {
-    if (events.length === 0) return;
-    const event = events.pop();
-    const repoEventArgs: RepoEventArgs = {
-      originalDocument,
-      operation: fn,
-      operationType: type
-    };
-    newDocument = event.bind(this)(newDocument, repoEventArgs);
-    if (typeof newDocument.then === 'function') {
-      newDocument = await newDocument;
-    }
-    if (events.length > 0) {
-      return this.bindEvents(events, fn, type, originalDocument, newDocument);
+    for (const event of events) {
+      const repoEventArgs: RepoEventArgs = {
+        originalDocument,
+        operation: fn,
+        operationType: type
+      };
+      newDocument = event.bind(this)(newDocument, repoEventArgs);
+      if (typeof newDocument.then === 'function') {
+        newDocument = await newDocument;
+      }
     }
   }
 
@@ -393,6 +420,15 @@ export class MongoRepository<DOC, DTO = DOC> {
     });
   }
 
+  /**
+   * Return a collection
+   * If the collection doesn't exist, it will create it with the given options
+   *
+   * @private
+   * @param {DB} db represents of the database
+   * @returns {Promise<Collection<DOC> | Collection<Document>>}
+   * @memberof MongoRepository
+   */
   private async createCollection(db: Db): Promise<Collection<DOC> | Collection<Document>> {
     try {
       return await db.createCollection(this.options.name, {
@@ -402,15 +438,28 @@ export class MongoRepository<DOC, DTO = DOC> {
       });
     } catch (createErr) {
       if (createErr.codeName === 'NamespaceExists') {
+        // race condition. ignore for now, as I can't seem to get
+        // transactions to work in mongo 4.4 as yet
         return this.getCollection();
       }
       throw createErr;
     }
   }
 
+  /**
+   * Create an Index
+   * If the index isn't created, it will retry it
+   *
+   * @private
+   * @param ourCollection represents the collection
+   * @param indexesOptions contains definition to create the indexes
+   * @returns {Promise<void>}
+   * @memberof MongoRepository
+   */
   private async indexDefinition(ourCollection: Collection<Document>, indexesOptions: IndexDefinition[]): Promise<void> {
     let indexDefinition;
     try {
+      // assert indexes
       if (indexesOptions?.length > 0) {
         indexDefinition = indexesOptions.shift();
         await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
@@ -418,29 +467,40 @@ export class MongoRepository<DOC, DTO = DOC> {
       }
       return;
     } catch (indexErr) {
-      this.reTryIndexCreation(indexDefinition, ourCollection, indexesOptions, indexErr);
+      if (
+        indexDefinition?.overwrite &&
+        indexDefinition?.options?.name &&
+        indexErr?.name === 'MongoError' &&
+        (indexErr?.codeName === 'IndexKeySpecsConflict' || indexErr?.codeName === 'IndexOptionsConflict')
+      ) {
+        this.retryIndexCreation(indexDefinition, ourCollection, indexesOptions);
+      }
+      throw indexErr;
     }
   }
 
-  private async reTryIndexCreation(
+  /**
+   * Retry to create an Index
+   * If the index isn't created, it will throw an error
+   *
+   * @private
+   * @param indexDefinition contains definition to create the indexes
+   * @param ourCollection represents the collection
+   * @param indexesOptions contains options to create the indexes
+   * @returns {Promise<void>}
+   * @memberof MongoRepository
+   */
+  private async retryIndexCreation(
     indexDefinition: IndexDefinition,
     ourCollection: Collection<Document>,
-    indexesOptions: IndexDefinition[],
-    indexErr: any
+    indexesOptions: IndexDefinition[]
   ): Promise<void> {
-    if (
-      indexDefinition?.overwrite &&
-      indexDefinition?.options?.name &&
-      indexErr?.name === 'MongoError' &&
-      (indexErr?.codeName === 'IndexKeySpecsConflict' || indexErr?.codeName === 'IndexOptionsConflict')
-    ) {
-      try {
-        await ourCollection.dropIndex(indexDefinition.options.name);
-        return await this.indexDefinition(ourCollection, indexesOptions);
-      } catch (recreateErr) {
-        throw recreateErr;
-      }
+    // drop index and recreate
+    try {
+      await ourCollection.dropIndex(indexDefinition.options.name);
+      return await this.indexDefinition(ourCollection, indexesOptions);
+    } catch (recreateErr) {
+      throw recreateErr;
     }
-    throw indexErr;
   }
 }

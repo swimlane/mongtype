@@ -3,7 +3,7 @@ import { Collection, Before, After, MongoRepository, RepoEventArgs, RepoOperatio
 import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
-import * as faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { ObjectId } from 'mongodb';
 import * as _ from 'lodash';
 
