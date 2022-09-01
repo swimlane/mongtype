@@ -37,7 +37,6 @@
   "devDependencies": {
     "@swimlane/prettier-config-swimlane": "^3.0.3",
     "@types/chai": "^4.3.3",
-    "@types/faker": "^6.6.9",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.7.13",
     "@types/retry": "^0.12.2",
