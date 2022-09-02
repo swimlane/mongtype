@@ -409,12 +409,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   private getCollection(): Promise<Collection<DOC>> {
     return new Promise<Collection<DOC>>(async (resolve, reject) => {
       const db = await this.dbSource.db;
-      let ourCollection;
-      const exist = (await db.listCollections({ name: this.options.name }).toArray())[0];
-      if (!exist) {
-        ourCollection = await this.createCollection(db);
-      }
-      ourCollection = db.collection(this.options.name);
+      const ourCollection = await this.createCollection(db);
       this.indexDefinition(ourCollection, this.options.indexes);
       resolve(ourCollection);
     });
@@ -426,10 +421,10 @@ export class MongoRepository<DOC, DTO = DOC> {
    *
    * @private
    * @param {DB} db represents of the database
-   * @returns {Promise<Collection<DOC> | Collection<Document>>}
+   * @returns {Promise<Collection<DOC>>}
    * @memberof MongoRepository
    */
-  private async createCollection(db: Db): Promise<Collection<DOC> | Collection<Document>> {
+  private async createCollection(db: Db): Promise<Collection<DOC>> {
     try {
       return await db.createCollection(this.options.name, {
         size: this.options.size,
@@ -456,7 +451,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @returns {Promise<void>}
    * @memberof MongoRepository
    */
-  private async indexDefinition(ourCollection: Collection<Document>, indexesOptions: IndexDefinition[]): Promise<void> {
+  private async indexDefinition(ourCollection: Collection<DOC>, indexesOptions: IndexDefinition[]): Promise<void> {
     let indexDefinition;
     try {
       // assert indexes
@@ -492,7 +487,7 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   private async retryIndexCreation(
     indexDefinition: IndexDefinition,
-    ourCollection: Collection<Document>,
+    ourCollection: Collection<DOC>,
     indexesOptions: IndexDefinition[]
   ): Promise<void> {
     // drop index and recreate
