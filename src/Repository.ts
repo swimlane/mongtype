@@ -1,6 +1,6 @@
 import { Collection, Db, DeleteResult, ObjectId, WithId } from 'mongodb';
 
-import * as _ from 'lodash';
+const clone = require('rfdc')({ proto: true });
 
 import {
   COLLECTION_KEY,
@@ -345,7 +345,7 @@ export class MongoRepository<DOC, DTO = DOC> {
 
     for (const fn of fns) {
       const events = Reflect.getMetadata(`${type}_${fn}`, this) || [];
-      await this.bindEvents(_.cloneDeep(events), fn, type, originalDocument, newDocument);
+      await this.bindEvents(clone(events), fn, type, originalDocument, newDocument);
     }
     return newDocument;
   }
@@ -360,9 +360,9 @@ export class MongoRepository<DOC, DTO = DOC> {
    * @memberof MongoRepository
    */
   protected cloneDocuments(newDocument: any, originalDocument: any): void {
-    newDocument = _.cloneDeep(newDocument);
+    newDocument = clone(newDocument);
     if (originalDocument) {
-      originalDocument = _.cloneDeep(originalDocument);
+      originalDocument = clone(originalDocument);
     }
   }
 
@@ -409,7 +409,12 @@ export class MongoRepository<DOC, DTO = DOC> {
   private getCollection(): Promise<Collection<DOC>> {
     return new Promise<Collection<DOC>>(async (resolve, reject) => {
       const db = await this.dbSource.db;
-      const ourCollection = await this.createCollection(db);
+      let ourCollection;
+      try {
+        ourCollection = await db.collection(this.options.name);
+      } catch (err) {
+        ourCollection = await this.createCollection(db);
+      }
       this.indexDefinition(ourCollection, this.options.indexes);
       resolve(ourCollection);
     });
@@ -435,7 +440,7 @@ export class MongoRepository<DOC, DTO = DOC> {
       if (createErr.codeName === 'NamespaceExists') {
         // race condition. ignore for now, as I can't seem to get
         // transactions to work in mongo 4.4 as yet
-        return this.getCollection();
+        return await this.getCollection();
       }
       throw createErr;
     }

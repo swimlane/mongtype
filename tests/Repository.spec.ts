@@ -5,7 +5,7 @@ mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
 import { faker } from '@faker-js/faker';
 import { ObjectId } from 'mongodb';
-import * as _ from 'lodash';
+const clone = require('rfdc')({ proto: true });
 
 describe('MongoRepository', () => {
   const dbs = [];
@@ -80,7 +80,7 @@ describe('MongoRepository', () => {
         if (!this.events[eventArgs.operationType][eventArgs.operation]) {
           this.events[eventArgs.operationType][eventArgs.operation] = [];
         }
-        this.events[eventArgs.operationType][eventArgs.operation].push({ args: _.cloneDeep(args) });
+        this.events[eventArgs.operationType][eventArgs.operation].push({ args: clone(args) });
         return args[0]; // return document
       }
     }
