@@ -279,7 +279,7 @@ export class MongoRepository<DOC, DTO = DOC> {
   }
 
   /**
-   * Strip off Mongo's ObjectID and replace with string representation or in reverse
+   * Strip off Mongo's ObjectId and replace with string representation or in reverse
    *
    * @private
    * @param {*} document
@@ -289,32 +289,15 @@ export class MongoRepository<DOC, DTO = DOC> {
    */
   protected toggleId(document: any, replace: boolean): any {
     if (document && (document.id || document._id)) {
-      this.setId(document, replace);
-    }
-    return document;
-  }
-
-  /**
-   * Set the document ID
-   *
-   * @private
-   * @param {*} document
-   * @param {boolean} replace
-   * @returns {void}
-   * @memberof MongoRepository
-   */
-  protected setId(document: any, replace: boolean): void {
-    switch (replace) {
-      case true:
+      if (replace) {
         document._id = new ObjectId(document.id);
         delete document.id;
-        break;
-
-      default:
+      } else {
         document.id = document.id ? document.id.toString() : document._id.toString();
         delete document._id;
-        break;
+      }
     }
+    return document;
   }
 
   /**
@@ -413,94 +396,47 @@ export class MongoRepository<DOC, DTO = DOC> {
       try {
         ourCollection = await db.collection(this.options.name);
       } catch (err) {
-        ourCollection = await this.createCollection(db);
+        try {
+          ourCollection = await db.createCollection(this.options.name, {
+            size: this.options.size,
+            capped: this.options.capped,
+            max: this.options.max
+          });
+        } catch (createErr) {
+          if (createErr.codeName === 'NamespaceExists') {
+            // race condition. ignore for now, as I can't seem to get
+            // transactions to work in mongo 4.4 as yet
+            ourCollection = db.collection(this.options.name);
+          } else {
+            reject(err);
+          }
+        }
       }
-      this.indexDefinition(ourCollection, this.options.indexes);
+      if (this.options.indexes) {
+        for (const indexDefinition of this.options.indexes) {
+          try {
+            await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
+          } catch (indexErr) {
+            if (
+              indexDefinition.overwrite &&
+              indexDefinition.options.name &&
+              indexErr.name === 'MongoError' &&
+              (indexErr.codeName === 'IndexKeySpecsConflict' || indexErr.codeName === 'IndexOptionsConflict')
+            ) {
+              // drop index and recreate
+              try {
+                await ourCollection.dropIndex(indexDefinition.options.name);
+                await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
+              } catch (recreateErr) {
+                reject(recreateErr);
+              }
+            } else {
+              reject(indexErr);
+            }
+          }
+        }
+      }
       resolve(ourCollection);
     });
-  }
-
-  /**
-   * Return a collection
-   * If the collection doesn't exist, it will create it with the given options
-   *
-   * @private
-   * @param {DB} db represents of the database
-   * @returns {Promise<Collection<DOC>>}
-   * @memberof MongoRepository
-   */
-  private async createCollection(db: Db): Promise<Collection<DOC>> {
-    try {
-      return await db.createCollection(this.options.name, {
-        size: this.options.size,
-        capped: this.options.capped,
-        max: this.options.max
-      });
-    } catch (createErr) {
-      if (createErr.codeName === 'NamespaceExists') {
-        // race condition. ignore for now, as I can't seem to get
-        // transactions to work in mongo 4.4 as yet
-        return await this.getCollection();
-      }
-      throw createErr;
-    }
-  }
-
-  /**
-   * Create an Index
-   * If the index isn't created, it will retry it
-   *
-   * @private
-   * @param ourCollection represents the collection
-   * @param indexesOptions contains definition to create the indexes
-   * @returns {Promise<void>}
-   * @memberof MongoRepository
-   */
-  private async indexDefinition(ourCollection: Collection<DOC>, indexesOptions: IndexDefinition[]): Promise<void> {
-    let indexDefinition;
-    try {
-      // assert indexes
-      if (indexesOptions?.length > 0) {
-        indexDefinition = indexesOptions.shift();
-        await ourCollection.createIndex(indexDefinition.fields, indexDefinition.options);
-        return this.indexDefinition(ourCollection, indexesOptions);
-      }
-      return;
-    } catch (indexErr) {
-      if (
-        indexDefinition?.overwrite &&
-        indexDefinition?.options?.name &&
-        indexErr?.name === 'MongoError' &&
-        (indexErr?.codeName === 'IndexKeySpecsConflict' || indexErr?.codeName === 'IndexOptionsConflict')
-      ) {
-        this.retryIndexCreation(indexDefinition, ourCollection, indexesOptions);
-      }
-      throw indexErr;
-    }
-  }
-
-  /**
-   * Retry to create an Index
-   * If the index isn't created, it will throw an error
-   *
-   * @private
-   * @param indexDefinition contains definition to create the indexes
-   * @param ourCollection represents the collection
-   * @param indexesOptions contains options to create the indexes
-   * @returns {Promise<void>}
-   * @memberof MongoRepository
-   */
-  private async retryIndexCreation(
-    indexDefinition: IndexDefinition,
-    ourCollection: Collection<DOC>,
-    indexesOptions: IndexDefinition[]
-  ): Promise<void> {
-    // drop index and recreate
-    try {
-      await ourCollection.dropIndex(indexDefinition.options.name);
-      return await this.indexDefinition(ourCollection, indexesOptions);
-    } catch (recreateErr) {
-      throw recreateErr;
-    }
   }
 }
