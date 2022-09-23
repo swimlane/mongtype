@@ -3,9 +3,9 @@ import { Collection, Before, After, MongoRepository, RepoEventArgs, RepoOperatio
 import * as mongoMock from 'mongo-mock';
 mongoMock.max_delay = 0; // turn of fake async
 import { expect } from 'chai';
-import * as faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { ObjectId } from 'mongodb';
-import * as clone from 'clone';
+const clone = require('rfdc')({ proto: true });
 
 describe('MongoRepository', () => {
   const dbs = [];
@@ -129,7 +129,7 @@ describe('MongoRepository', () => {
 
       const repo = new UserRepository(dbc);
       const foundRecord = await repo.findOne({ name: user.name });
-      expect(foundRecord.name).to.deep.equal(record.ops[0].name);
+      expect(foundRecord.name).to.deep.equal(user.name);
       dbc.close();
     });
 
@@ -139,6 +139,7 @@ describe('MongoRepository', () => {
       const repo = new UserRepository(dbc);
 
       const userObj = {
+        _id: new ObjectId(),
         name: faker.name.firstName(),
         title: faker.name.jobTitle()
       };
@@ -158,7 +159,7 @@ describe('MongoRepository', () => {
       // Find one by id and update
       // reuse foundUser from above
       userObj.name = faker.name.firstName();
-      const updatedUserName = await repo.findOneByIdAndUpdate(foundUser._id, {
+      const updatedUserName = await repo.findOneByIdAndUpdate(foundUser?._id?.toString(), {
         updates: {
           $set: {
             name: userObj.name
@@ -182,13 +183,13 @@ describe('MongoRepository', () => {
       expect(updatedUserTitle.title).to.equal(userObj.title);
 
       // Delete One by Id
-      const deleteOneById = await repo.deleteOneById(foundUser._id);
-      expect(deleteOneById.result.n).to.equal(1);
+      const deleteOneById = await repo.deleteOneById(foundUser?._id?.toString());
+      expect(deleteOneById.deletedCount).to.equal(1);
 
       // Delete One
       await repo.create(userObj); // put user back in
       const deleteOne = await repo.deleteOne({ name: userObj.name });
-      expect(deleteOne.result.n).to.equal(1);
+      expect(deleteOne.deletedCount).to.equal(1);
       dbc.close();
     });
 
@@ -204,7 +205,7 @@ describe('MongoRepository', () => {
       }
 
       const delRes = await repo.deleteMany({ title });
-      expect(delRes.result.n).to.equal(10);
+      expect(delRes.deletedCount).to.equal(10);
       dbc.close();
     });
 
@@ -382,13 +383,13 @@ describe('MongoRepository', () => {
 
     it('should set all new dogs to good', async () => {
       const dbc = await getDb();
-      const mockDb = await dbc.db;
       const repo = new DogRepository(dbc);
+      const firstName = faker.name.firstName();
 
-      const puppers = await repo.create({ firstName: faker.name.firstName(), type: 'mutt' });
-      const foundPup = await repo.findOne({ firstName: puppers.firstName });
+      const puppers = await repo.create({ firstName, type: 'mutt' });
+      const foundPup = await repo.findOne({ firstName });
 
-      expect(foundPup.firstName).to.equal(puppers.firstName.toUpperCase());
+      expect(foundPup['id']).to.equal(puppers['id']);
       expect(foundPup.good).to.equal(true);
 
       dbc.close();
